@@ -1,0 +1,106 @@
+/* StatusLabel — shows category-explicit text labels for claim types, review statuses, etc. */
+
+.label {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-semibold);
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  border: 1px solid;
+  white-space: nowrap;
+  letter-spacing: 0.02em;
+}
+
+.direct {
+  color: var(--color-claim-direct);
+  background: hsl(185 40% 10%);
+  border-color: hsl(185 35% 22%);
+}
+
+.restatement {
+  color: var(--color-claim-direct);
+  background: hsl(185 30% 10%);
+  border-color: hsl(185 25% 22%);
+}
+
+.interpretation {
+  color: var(--color-claim-interpretation);
+  background: hsl(255 35% 12%);
+  border-color: hsl(255 30% 25%);
+}
+
+.concern {
+  color: var(--color-claim-concern);
+  background: hsl(38 40% 10%);
+  border-color: hsl(38 35% 22%);
+}
+
+.ambiguity {
+  color: var(--color-claim-ambiguity);
+  background: hsl(30 40% 10%);
+  border-color: hsl(30 35% 22%);
+}
+
+.conflict {
+  color: var(--color-claim-conflict);
+  background: hsl(4 35% 10%);
+  border-color: hsl(4 30% 22%);
+}
+
+.general {
+  color: var(--color-status-neutral);
+  background: var(--color-status-neutral-bg);
+  border-color: var(--color-border);
+}
+
+/* Review statuses */
+.found {
+  color: var(--color-status-found);
+  background: var(--color-status-found-bg);
+  border-color: hsl(142 30% 22%);
+}
+
+.notFound {
+  color: var(--color-text-muted);
+  background: var(--color-bg-elevated);
+  border-color: var(--color-border);
+}
+
+.notAssessed {
+  color: var(--color-text-muted);
+  background: var(--color-bg-elevated);
+  border-color: var(--color-border);
+  font-style: italic;
+}
+
+.possibleConflict {
+  color: var(--color-claim-conflict);
+  background: hsl(4 35% 10%);
+  border-color: hsl(4 30% 22%);
+}
+
+.legalLimit {
+  color: var(--color-status-info);
+  background: var(--color-status-info-bg);
+  border-color: hsl(210 30% 22%);
+}
+
+.answered {
+  color: var(--color-status-found);
+  background: var(--color-status-found-bg);
+  border-color: hsl(142 30% 22%);
+}
+
+.limited {
+  color: var(--color-status-warn);
+  background: var(--color-status-warn-bg);
+  border-color: hsl(38 35% 22%);
+}
+
+.error {
+  color: var(--color-status-error);
+  background: var(--color-status-error-bg);
+  border-color: hsl(4 30% 22%);
+}

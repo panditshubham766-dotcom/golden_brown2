@@ -1,0 +1,118 @@
+/* LexiGuard Design Tokens
+ * All values are CSS custom properties. No inline styles.
+ * Compatible with CSP: style-src 'self' (no unsafe-inline).
+ */
+
+:root {
+  /* ── Color Palette ─────────────────────────────────────────────── */
+  /* Dark base */
+  --color-bg-base:        hsl(222, 20%, 8%);
+  --color-bg-surface:     hsl(222, 18%, 11%);
+  --color-bg-elevated:    hsl(222, 16%, 14%);
+  --color-bg-overlay:     hsl(222, 14%, 18%);
+
+  /* Primary accent — muted teal */
+  --color-primary:        hsl(185, 60%, 45%);
+  --color-primary-hover:  hsl(185, 65%, 52%);
+  --color-primary-subtle: hsl(185, 40%, 15%);
+
+  /* Text */
+  --color-text-primary:   hsl(210, 20%, 92%);
+  --color-text-secondary: hsl(210, 12%, 60%);
+  --color-text-muted:     hsl(210, 10%, 42%);
+  --color-text-inverse:   hsl(222, 20%, 8%);
+
+  /* Borders */
+  --color-border:         hsl(222, 14%, 22%);
+  --color-border-strong:  hsl(222, 14%, 30%);
+
+  /* Status — neutral, accessible */
+  --color-status-found:       hsl(142, 45%, 38%);
+  --color-status-found-bg:    hsl(142, 30%, 10%);
+  --color-status-warn:        hsl(38, 75%, 50%);
+  --color-status-warn-bg:     hsl(38, 40%, 10%);
+  --color-status-info:        hsl(210, 70%, 55%);
+  --color-status-info-bg:     hsl(210, 40%, 10%);
+  --color-status-error:       hsl(4, 65%, 55%);
+  --color-status-error-bg:    hsl(4, 40%, 10%);
+  --color-status-neutral:     hsl(210, 12%, 58%);
+  --color-status-neutral-bg:  hsl(222, 14%, 16%);
+
+  /* Claim classification colours (text labels only, not the sole signal) */
+  --color-claim-direct:       hsl(185, 55%, 42%);
+  --color-claim-interpretation: hsl(255, 55%, 65%);
+  --color-claim-concern:      hsl(38, 75%, 50%);
+  --color-claim-ambiguity:    hsl(30, 70%, 52%);
+  --color-claim-conflict:     hsl(4, 60%, 55%);
+  --color-claim-general:      hsl(210, 12%, 58%);
+
+  /* ── Typography ────────────────────────────────────────────────── */
+  --font-sans:   'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono:   'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
+
+  --text-xs:    0.75rem;
+  --text-sm:    0.8125rem;
+  --text-base:  0.9375rem;
+  --text-md:    1rem;
+  --text-lg:    1.125rem;
+  --text-xl:    1.375rem;
+  --text-2xl:   1.75rem;
+  --text-3xl:   2.25rem;
+
+  --weight-normal:   400;
+  --weight-medium:   500;
+  --weight-semibold: 600;
+  --weight-bold:     700;
+
+  --leading-tight:   1.2;
+  --leading-snug:    1.4;
+  --leading-normal:  1.6;
+  --leading-relaxed: 1.75;
+
+  /* ── Spacing ───────────────────────────────────────────────────── */
+  --space-1:  0.25rem;
+  --space-2:  0.5rem;
+  --space-3:  0.75rem;
+  --space-4:  1rem;
+  --space-5:  1.25rem;
+  --space-6:  1.5rem;
+  --space-8:  2rem;
+  --space-10: 2.5rem;
+  --space-12: 3rem;
+  --space-16: 4rem;
+
+  /* ── Layout ────────────────────────────────────────────────────── */
+  --max-width-content: 72rem;
+  --max-width-text:    68ch;
+  --sidebar-width:     20rem;
+  --header-height:     3.5rem;
+
+  /* ── Borders & Radii ───────────────────────────────────────────── */
+  --radius-sm:   0.25rem;
+  --radius-md:   0.5rem;
+  --radius-lg:   0.75rem;
+  --radius-xl:   1rem;
+  --radius-full: 9999px;
+
+  /* ── Shadows ───────────────────────────────────────────────────── */
+  --shadow-sm:  0 1px 3px hsl(222 30% 3% / 0.4);
+  --shadow-md:  0 4px 12px hsl(222 30% 3% / 0.5);
+  --shadow-lg:  0 8px 24px hsl(222 30% 3% / 0.6);
+
+  /* ── Transitions ───────────────────────────────────────────────── */
+  --transition-fast:   120ms ease;
+  --transition-normal: 200ms ease;
+  --transition-slow:   350ms ease;
+
+  /* ── Focus ─────────────────────────────────────────────────────── */
+  --focus-ring: 0 0 0 2px var(--color-bg-base), 0 0 0 4px var(--color-primary);
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --transition-fast:   0ms;
+    --transition-normal: 0ms;
+    --transition-slow:   0ms;
+  }
+}
