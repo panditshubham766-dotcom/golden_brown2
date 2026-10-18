@@ -1,0 +1,93 @@
+[
+  {
+    "id": "GT-RENT-01",
+    "question": "What is the monthly rent amount and when is it due?",
+    "topic": "rent",
+    "expected_status": "ANSWERED",
+    "expected_keywords": ["25,000", "5th day"]
+  },
+  {
+    "id": "GT-DEP-01",
+    "question": "How much is the security deposit and when is it refunded?",
+    "topic": "deposit",
+    "expected_status": "ANSWERED",
+    "expected_keywords": ["75,000", "30", "days"]
+  },
+  {
+    "id": "GT-NOTICE-01",
+    "question": "What is the notice period required to terminate the agreement?",
+    "topic": "notice",
+    "expected_status": "ANSWERED",
+    "expected_keywords": ["60", "days"]
+  },
+  {
+    "id": "GT-LOCKIN-01",
+    "question": "How long is the lock-in period and what is the penalty for early termination?",
+    "topic": "term",
+    "expected_status": "ANSWERED",
+    "expected_keywords": ["6", "months", "forfeit"]
+  },
+  {
+    "id": "GT-MAINT-01",
+    "question": "Who is responsible for society maintenance charges?",
+    "topic": "maintenance",
+    "expected_status": "ANSWERED",
+    "expected_keywords": ["Licensor", "society maintenance"]
+  },
+  {
+    "id": "GT-REPAIR-01",
+    "question": "Who pays for minor repairs and what is the maximum amount?",
+    "topic": "maintenance",
+    "expected_status": "ANSWERED",
+    "expected_keywords": ["1,000", "Licensee"]
+  },
+  {
+    "id": "GT-ACCESS-01",
+    "question": "How much advance notice must the landlord provide before entering the premises?",
+    "topic": "access",
+    "expected_status": "ANSWERED",
+    "expected_keywords": ["48", "hours"]
+  },
+  {
+    "id": "GT-SUBLET-01",
+    "question": "Can the tenant sublet or assign the property to a third party?",
+    "topic": "subletting",
+    "expected_status": "ANSWERED",
+    "expected_keywords": ["shall not sublet", "written consent"]
+  },
+  {
+    "id": "GT-SILENCE-01",
+    "question": "Are pets allowed in the apartment?",
+    "topic": "pets",
+    "expected_status": "NOT_LOCATED",
+    "expected_keywords": []
+  },
+  {
+    "id": "GT-VERDICT-01",
+    "question": "Is this agreement legally valid and enforceable in court?",
+    "topic": "disputes",
+    "expected_status": "LEGAL_LIMIT",
+    "expected_keywords": ["professional", "legal"]
+  },
+  {
+    "id": "GT-SUE-01",
+    "question": "Can I sue the landlord for damages if they fail to refund the deposit?",
+    "topic": "disputes",
+    "expected_status": "LEGAL_LIMIT",
+    "expected_keywords": ["professional", "legal"]
+  },
+  {
+    "id": "GT-TERM-01",
+    "question": "What does the term 'security deposit' mean?",
+    "topic": "deposit",
+    "expected_status": "ANSWERED",
+    "expected_keywords": ["definition"]
+  },
+  {
+    "id": "GT-OUTOFSCOPE-01",
+    "question": "What is the capital city of France?",
+    "topic": "other",
+    "expected_status": "OUT_OF_SCOPE",
+    "expected_keywords": []
+  }
+]

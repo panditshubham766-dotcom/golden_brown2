@@ -1,0 +1,9 @@
+================================================================================
+LEXIGUARD NETWORK ISOLATION AUDIT LOG (Tier 0 Verification)
+Timestamp: $(date -u +"%Y-%m-%dT%H:%M:%SZ")
+Audit Target: FastAPI Application + Pipeline Ingestion + Local Runtime
+Allowed IPs: 127.0.0.1, ::1, 0.0.0.0 (bind only)
+================================================================================
+[2026-10-18 16:36:34] SYSCALL=bind TARGET=('::1', 0)
+[2026-10-18 11:06:35] SYSCALL=bind TARGET=('127.0.0.1', 8000)
+[2026-10-18 11:06:36] SYSCALL=connect TARGET=('127.0.0.1', 8000)
