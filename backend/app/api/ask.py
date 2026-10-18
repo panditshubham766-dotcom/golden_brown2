@@ -121,8 +121,8 @@ async def review_document(
                     EvidenceItem(
                         sid=h.sid,
                         page=h.page_num,
-                        section=label,
-                        quote=h.norm_text,
+                        section=h.section or label,
+                        quote=h.sentence_text,
                         ocr_derived=False,
                     )
                 )

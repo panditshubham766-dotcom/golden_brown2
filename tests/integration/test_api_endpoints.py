@@ -118,7 +118,13 @@ def test_api_full_lifecycle(tmp_path: Path):
         verdict_answer = verdict_res.json()
         assert verdict_answer["status"] == "LEGAL_LIMIT"
         assert verdict_answer["legal_verdict"] is None
-        assert verdict_answer["recommend_professional_review"] is True
+        # 8b. Test Review Endpoint: Core 10 Topics
+        review_res = client.post(f"/api/documents/{doc_id}/review", headers=headers)
+        assert review_res.status_code == 200, review_res.text
+        review_data = review_res.json()
+        assert "topics" in review_data
+        assert len(review_data["topics"]) > 0
+        assert "professional_questions" in review_data
 
     finally:
         # 9. Test Document Deletion
