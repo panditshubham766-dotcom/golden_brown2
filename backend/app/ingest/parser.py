@@ -245,7 +245,6 @@ def main() -> None:
         sys.exit(1)
 
     file_type: str = envelope.get("file_type", "")
-    raw: bytes = bytes(envelope.get("raw_b64", []))  # fallback; parent sends base64
     max_pages: int = envelope.get("max_pages", 500)
     max_text_bytes: int = envelope.get("max_text_bytes", 10 * 1024 * 1024)
     virtual_page_chars: int = envelope.get("virtual_page_chars", 3_000)

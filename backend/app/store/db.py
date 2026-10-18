@@ -51,6 +51,7 @@ CREATE TABLE IF NOT EXISTS sentences (
     start_offset    INTEGER NOT NULL,
     end_offset      INTEGER NOT NULL,
     sentence_text   TEXT NOT NULL,
+    normalised_number TEXT NOT NULL DEFAULT '',
     FOREIGN KEY (page_num) REFERENCES pages(page_num)
 );
 

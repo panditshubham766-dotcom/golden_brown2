@@ -59,6 +59,10 @@ class Settings(BaseSettings):
     # Min token count to apply function-word test
     lang_min_tokens_for_fn_test: int = 40
 
+    # ── Local LLM (Tier 0 Ollama) ─────────────────────────────────────────────
+    ollama_base_url: str = "http://127.0.0.1:11434"
+    model_tag: str = "gemma4:e2b-it-q4_K_M"
+
     # ── Environment ───────────────────────────────────────────────────────────
     environment: Literal["development", "production", "test"] = "development"
 

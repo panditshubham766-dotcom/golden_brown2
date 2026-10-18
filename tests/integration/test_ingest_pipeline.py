@@ -67,6 +67,13 @@ def test_fts5_search(tmp_path: Path) -> None:
 
     con = open_doc_db(tmp_path / "test.sqlite3")
 
+    # Insert required page row first (FK: sentences.page_num -> pages.page_num)
+    con.execute(
+        "INSERT INTO pages (page_num, norm_text, text_hash) VALUES (?, ?, ?)",
+        (1, "Test page content.", "abc123hash"),
+    )
+    con.commit()
+
     sents = [
         Sentence(
             sid="s_test001",

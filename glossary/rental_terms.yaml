@@ -1,0 +1,47 @@
+# LexiGuard Curated Rental Terms Glossary v1
+# General definitions only - Not legal advice.
+# These definitions explain common concepts and do not settle the legal effect of any specific clause.
+
+version: 1
+disclaimer: "General definitions only — not legal advice. Wording and legal effect vary by jurisdiction and specific agreement terms."
+
+terms:
+  security deposit:
+    term: "Security Deposit"
+    definition: "A sum of money paid by the tenant to the landlord at the beginning of a tenancy to cover potential damages, unpaid bills, or rent defaults during the tenancy period."
+    note: "Refund conditions, deduction rules, and timelines vary by jurisdiction and individual agreements."
+
+  lock-in period:
+    term: "Lock-in Period"
+    definition: "A specified minimum timeframe during which neither the landlord nor the tenant may terminate the tenancy agreement without incurring a penalty or forfeiture."
+    note: "Enforceability and damages during lock-in periods depend on contract terms and local statutory tenancy rules."
+
+  notice period:
+    term: "Notice Period"
+    definition: "The amount of advance written notice that either party must provide to the other before vacating or terminating the tenancy."
+    note: "Standard notice periods typically range from 30 to 90 days as defined in the contract."
+
+  force majeure:
+    term: "Force Majeure"
+    definition: "A contractual clause excusing one or both parties from fulfilling their obligations due to extraordinary, unforeseen events beyond their reasonable control, such as natural disasters or government-mandated lockdowns."
+    note: "Applicability depends strictly on the exact phrasing of the clause and applicable contract law."
+
+  rent escalation:
+    term: "Rent Escalation"
+    definition: "A clause providing for a periodic increase in the rent amount, usually expressed as a percentage at the time of renewal or after a specified duration."
+    note: "Commonly set between 5% and 10% annually in residential rental agreements."
+
+  subletting:
+    term: "Subletting"
+    definition: "An arrangement where the tenant leases all or a portion of the rented premises to a third party."
+    note: "Most residential agreements strictly prohibit subletting without prior written consent from the landlord."
+
+  indemnity:
+    term: "Indemnity"
+    definition: "An obligation where one party promises to compensate the other for any harm, loss, or legal liability incurred as a result of specified events or defaults."
+    note: "The scope of indemnification is determined by the specific text of the agreement."
+
+  leave and licence:
+    term: "Leave and Licence"
+    definition: "A legal arrangement granting permission to occupy a property for a temporary period without creating a tenancy right or interest in the immovable property."
+    note: "Differs from a lease; commonly used in Indian jurisdictions to govern residential occupancy."

@@ -118,10 +118,12 @@ def create_app() -> FastAPI:
     from backend.app.api.health import router as health_router
     from backend.app.api.session import router as session_router
     from backend.app.api.documents import router as documents_router
+    from backend.app.api.ask import router as ask_router
 
     app.include_router(session_router, prefix="/api")
     app.include_router(health_router, prefix="/api")
     app.include_router(documents_router, prefix="/api")
+    app.include_router(ask_router, prefix="/api")
 
     # ── Frontend static files (Phase 4+) ───────────────────────────────────────
     frontend_dist = Path("frontend/dist")

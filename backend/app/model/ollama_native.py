@@ -142,10 +142,12 @@ class OllamaNativeProvider(LLMProvider):
         data = self._execute_chat_request(payload)
         content = data.get("message", {}).get("content", "")
 
+        last_error = ""
         try:
             return response_schema.model_validate_json(content)
         except (ValidationError, ValueError, TypeError) as first_err:
-            logger.warning("First validation attempt failed: %s. Retrying once.", first_err)
+            last_error = str(first_err)
+            logger.warning("First validation attempt failed: %s. Retrying once.", last_error)
 
         # Single format-retry
         retry_messages = list(messages)
@@ -154,7 +156,7 @@ class OllamaNativeProvider(LLMProvider):
             {
                 "role": "user",
                 "content": (
-                    f"The previous output failed schema validation: {first_err}\n"
+                    f"The previous output failed schema validation: {last_error}\n"
                     f"Please fix the formatting and output only valid JSON matching the schema."
                 ),
             }

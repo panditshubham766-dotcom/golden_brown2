@@ -12,11 +12,11 @@ def insert_sentences(con: sqlite3.Connection, sentences: "list[Sentence]") -> No
     """Bulk-insert sentences. FTS5 triggers fire automatically."""
     con.executemany(
         """
-        INSERT INTO sentences (sid, page_num, section, start_offset, end_offset, sentence_text)
-        VALUES (?, ?, ?, ?, ?, ?)
+        INSERT INTO sentences (sid, page_num, section, start_offset, end_offset, sentence_text, normalised_number)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
         """,
         [
-            (s.sid, s.page_num, s.section, s.start, s.end, s.text)
+            (s.sid, s.page_num, s.section, s.start, s.end, s.text, s.text)
             for s in sentences
         ],
     )

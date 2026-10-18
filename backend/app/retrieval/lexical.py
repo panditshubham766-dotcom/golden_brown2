@@ -212,28 +212,50 @@ def search_lexical(
     - Pure lexical / BM25; zero dense retrieval or FAISS.
     """
     effective_limit = min(max(1, limit), MAX_CHUNKS)
-
     search_terms: List[str] = []
 
-    # 1. Add topic synonyms if specified
-    if topic:
-        topics_dict = load_rental_topics()
-        topic_lower = topic.strip().lower()
-        if topic_lower in topics_dict:
-            synonyms = topics_dict[topic_lower].get("synonyms", [])
+    # 1. Detect topic from query if topic was not explicitly provided
+    topics_dict = load_rental_topics()
+    active_topic = topic
+    if not active_topic and query.strip():
+        q_lower = query.lower()
+        for t_key in topics_dict:
+            if re.search(r"\b" + re.escape(t_key) + r"\b", q_lower):
+                active_topic = t_key
+                break
+
+    # Add topic synonyms
+    if active_topic:
+        t_lower = active_topic.strip().lower()
+        if t_lower in topics_dict:
+            synonyms = topics_dict[t_lower].get("synonyms", [])
             for syn in synonyms:
                 escaped = _escape_fts5_term(syn)
                 if escaped:
                     search_terms.append(escaped)
         else:
-            escaped_topic = _escape_fts5_term(topic)
+            escaped_topic = _escape_fts5_term(active_topic)
             if escaped_topic:
                 search_terms.append(escaped_topic)
 
-    # 2. Add user query terms
+    # 2. Add user query terms (filter out common conversational question stopwords)
+    _STOPWORDS = frozenset([
+        "what", "is", "the", "are", "was", "were", "when", "where", "how", "why", "who",
+        "does", "do", "did", "can", "could", "will", "would", "shall", "should", "a", "an",
+        "of", "to", "in", "on", "for", "at", "by", "with", "from", "about", "tell", "me", "please",
+    ])
     if query.strip():
+        # First add clean content tokens individually
+        clean_words = [
+            w for w in re.findall(r"[a-zA-Z0-9_-]+", query)
+            if w.lower() not in _STOPWORDS and len(w) > 1
+        ]
+        for w in clean_words:
+            search_terms.append(f'"{w}"')
+
+        # Also add the full phrase if short
         escaped_query = _escape_fts5_term(query)
-        if escaped_query:
+        if escaped_query and escaped_query not in search_terms:
             search_terms.append(escaped_query)
 
     if not search_terms:

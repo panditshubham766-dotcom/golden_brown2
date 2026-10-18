@@ -84,11 +84,15 @@ def _delete_sync(document_id: str, doc_dir: Path) -> DeletionResult:
 
     # ── Step 1: Close connections and explicitly zero FTS shadow tables ───────
     if db_path.exists():
+        con = None
         try:
-            con = sqlite3.connect(str(db_path))
+            # Use autocommit mode (isolation_level=None) so VACUUM can be called
+            # outside any transaction — required by SQLite.
+            con = sqlite3.connect(str(db_path), isolation_level=None)
             # secure_delete=ON ensures freed pages are overwritten.
             con.execute("PRAGMA secure_delete=ON")
             # Delete all rows — triggers fire and remove FTS5 shadow rows.
+            con.execute("BEGIN")
             con.execute("DELETE FROM sentences")
             con.execute("DELETE FROM pages")
             con.execute("DELETE FROM document")
@@ -97,12 +101,20 @@ def _delete_sync(document_id: str, doc_dir: Path) -> DeletionResult:
                 con.execute("INSERT INTO sentences_fts(sentences_fts) VALUES('delete-all')")
             except sqlite3.OperationalError:
                 pass
+            con.execute("COMMIT")
+            # VACUUM must run outside any transaction (autocommit required).
             con.execute("VACUUM")
-            con.commit()
-            con.close()
             fts_removed = True
         except Exception as exc:
             logger.warning("Could not clear DB rows before deletion: %s", exc)
+        finally:
+            # Always close and dereference — critical on Windows to release the file lock.
+            if con is not None:
+                try:
+                    con.close()
+                except Exception:
+                    pass
+                con = None
 
     # ── Step 2: Remove the directory tree ─────────────────────────────────────
     removed = False
