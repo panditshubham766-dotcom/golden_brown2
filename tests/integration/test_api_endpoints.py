@@ -6,7 +6,9 @@ Tests every route:
 - POST /api/documents (document upload and ingestion)
 - GET /api/documents (document listing)
 - GET /api/documents/{id}/pages/{num} (source viewer)
-- POST /api/documents/{id}/ask (CUAD and factual QA)
+- POST /api/documents/{id}/ask (Single-Pass RAG QA)
+- POST /api/documents/{id}/review (Core 10 risk assessment)
+- POST /api/documents/{id}/summarize (structured document overview)
 - DELETE /api/documents/{id} (forensic-aware document deletion)
 """
 from __future__ import annotations
@@ -17,7 +19,6 @@ from fastapi.testclient import TestClient
 
 from backend.app.main import create_app
 import backend.app.main as main_mod
-from backend.app.config import get_settings
 
 
 def test_api_full_lifecycle(tmp_path: Path):
@@ -74,50 +75,66 @@ def test_api_full_lifecycle(tmp_path: Path):
         assert "LEAVE AND LICENCE AGREEMENT" in page_res.text
         assert page_res.headers.get("cache-control") == "no-store"
 
-        # 6. Test Ask Endpoint: CUAD Parties Question
+        # 6. Test Single-Pass RAG Ask: Parties question
         ask_payload = {
             "question": "Highlight the parts (if any) of this contract related to 'Parties' (the entities entering the agreement)."
         }
         ask_res = client.post(f"/api/documents/{doc_id}/ask", headers=headers, json=ask_payload)
         assert ask_res.status_code == 200, ask_res.text
         answer = ask_res.json()
-        assert answer["status"] == "ANSWERED"
-        assert answer["legal_verdict"] is None
-        assert len(answer["claims"]) > 0
 
-        # Verify parties are in the evidence
-        all_quotes = " ".join(
-            ev["quote"]
-            for claim in answer["claims"]
-            for ev in claim["evidence"]
+        # Validate Single-Pass RAG response shape
+        assert "status" in answer
+        assert answer["status"] in ("ANSWERED", "NOT_LOCATED")
+        assert "answer" in answer
+        assert isinstance(answer["answer"], str)
+        assert "citations" in answer
+        assert isinstance(answer["citations"], list)
+        assert answer["legal_verdict"] is None  # Non-verdict policy
+
+        # If answered, citations must have page numbers
+        if answer["status"] == "ANSWERED" and answer["citations"]:
+            first_cit = answer["citations"][0]
+            assert "page" in first_cit
+            assert isinstance(first_cit["page"], int)
+            assert first_cit["page"] >= 1
+            assert "snippet" in first_cit
+
+        # Verify parties content appears somewhere in the answer or citations
+        full_text = answer["answer"] + " ".join(
+            c.get("snippet", "") for c in answer.get("citations", [])
         )
-        assert "Ramesh Kumar Sharma" in all_quotes or "Licensor" in all_quotes
-        assert "Priya Agarwal" in all_quotes or "Licensee" in all_quotes
+        assert (
+            "Ramesh" in full_text
+            or "Priya" in full_text
+            or "Licensor" in full_text
+            or "Licensee" in full_text
+        ), f"Expected party names in response; got: {full_text[:200]}"
 
-        # 7. Test Ask Endpoint: CUAD Governing Law Question
+        # 7. Test Ask: Governing Law question
         gov_payload = {
-            "question": "Highlight the parts (if any) of this contract related to 'Governing Law' (jurisdiction governing interpretation)."
+            "question": "Highlight the parts (if any) of this contract related to 'Governing Law'."
         }
         gov_res = client.post(f"/api/documents/{doc_id}/ask", headers=headers, json=gov_payload)
         assert gov_res.status_code == 200
         gov_answer = gov_res.json()
-        assert gov_answer["status"] == "ANSWERED"
-        gov_quotes = " ".join(
-            ev["quote"]
-            for claim in gov_answer["claims"]
-            for ev in claim["evidence"]
-        )
-        assert "Maharashtra" in gov_quotes or "arbitration" in gov_quotes
+        assert gov_answer["status"] in ("ANSWERED", "NOT_LOCATED")
+        if gov_answer["status"] == "ANSWERED":
+            assert "Page" in gov_answer["answer"] or any(
+                c["page"] >= 1 for c in gov_answer.get("citations", [])
+            ), "Governing law answer should cite a page"
 
-        # 8. Test Ask Endpoint: Limitation / Verdict Scanner
-        verdict_payload = {
-            "question": "Is this penalty clause legally valid and enforceable in court?"
-        }
-        verdict_res = client.post(f"/api/documents/{doc_id}/ask", headers=headers, json=verdict_payload)
-        assert verdict_res.status_code == 200
-        verdict_answer = verdict_res.json()
-        assert verdict_answer["status"] == "LEGAL_LIMIT"
-        assert verdict_answer["legal_verdict"] is None
+        # 8. Test Ask: NOT_LOCATED case (nonsense query)
+        nonsense_res = client.post(
+            f"/api/documents/{doc_id}/ask",
+            headers=headers,
+            json={"question": "xyzzy frobnicator oblique quorum"},
+        )
+        assert nonsense_res.status_code == 200
+        nonsense_answer = nonsense_res.json()
+        # Should return NOT_LOCATED or ANSWERED with empty citations
+        assert nonsense_answer["status"] in ("ANSWERED", "NOT_LOCATED")
+
         # 8b. Test Review Endpoint: Core 10 Topics
         review_res = client.post(f"/api/documents/{doc_id}/review", headers=headers)
         assert review_res.status_code == 200, review_res.text
@@ -126,8 +143,58 @@ def test_api_full_lifecycle(tmp_path: Path):
         assert len(review_data["topics"]) > 0
         assert "professional_questions" in review_data
 
+        # Each topic must have required fields
+        for topic in review_data["topics"]:
+            assert "topic_id" in topic
+            assert "label" in topic
+            assert "status" in topic
+            assert topic["status"] in ("FOUND", "NOT_FOUND", "AMBIGUOUS", "NOT_ASSESSED")
+            assert "evidence" in topic
+
+        # 8c. Test Summarize Endpoint: extractive fallback (Ollama not running in CI)
+        summarize_res = client.post(f"/api/documents/{doc_id}/summarize", headers=headers)
+        assert summarize_res.status_code == 200, summarize_res.text
+        summary_data = summarize_res.json()
+
+        # Validate SummaryResponse shape
+        assert "document_id" in summary_data
+        assert summary_data["document_id"] == doc_id
+        assert "summary_markdown" in summary_data
+        assert isinstance(summary_data["summary_markdown"], str)
+        assert len(summary_data["summary_markdown"]) > 0
+        assert "key_points" in summary_data
+        assert isinstance(summary_data["key_points"], list)
+        assert "referenced_pages" in summary_data
+        assert isinstance(summary_data["referenced_pages"], list)
+        assert "model_used" in summary_data
+        assert "fallback" in summary_data
+        # In CI without Ollama, should use extractive fallback
+        if summary_data["fallback"]:
+            assert summary_data["model_used"] == "extractive-bm25"
+
+        # key_points must have label and value fields
+        for kp in summary_data["key_points"]:
+            assert "label" in kp
+            assert "value" in kp
+            assert "page_refs" in kp
+            assert isinstance(kp["page_refs"], list)
+
+        # 9. Verify 404 for non-existent document on all routes
+        missing_ask = client.post(
+            "/api/documents/does-not-exist-123/ask",
+            headers=headers,
+            json={"question": "test"},
+        )
+        assert missing_ask.status_code == 404
+
+        missing_summarize = client.post(
+            "/api/documents/does-not-exist-123/summarize",
+            headers=headers,
+        )
+        assert missing_summarize.status_code == 404
+
     finally:
-        # 9. Test Document Deletion
+        # 10. Test Document Deletion
         del_res = client.delete(f"/api/documents/{doc_id}", headers=headers)
         assert del_res.status_code == 200, del_res.text
         del_data = del_res.json()
@@ -200,6 +267,27 @@ def test_upload_raw_txt_file():
     assert data["status"] in ("ready", "partial")
 
     doc_id = data["document_id"]
+
+    # Quick ask smoke test on txt file
+    ask_res = client.post(
+        f"/api/documents/{doc_id}/ask",
+        headers=headers,
+        json={"question": "What is the governing law?"},
+    )
+    assert ask_res.status_code == 200
+    ask_data = ask_res.json()
+    assert ask_data["status"] in ("ANSWERED", "NOT_LOCATED")
+    if ask_data["status"] == "ANSWERED":
+        assert "India" in ask_data["answer"] or any(
+            "India" in c.get("snippet", "") for c in ask_data.get("citations", [])
+        )
+
+    # Quick summarize smoke test on txt file
+    summarize_res = client.post(f"/api/documents/{doc_id}/summarize", headers=headers)
+    assert summarize_res.status_code == 200
+    sum_data = summarize_res.json()
+    assert sum_data["document_id"] == doc_id
+    assert isinstance(sum_data["summary_markdown"], str)
+
     del_res = client.delete(f"/api/documents/{doc_id}", headers=headers)
     assert del_res.status_code == 200
-

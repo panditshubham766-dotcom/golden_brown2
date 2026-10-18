@@ -9,8 +9,9 @@ import type {
   HealthResponse,
   DocumentCard,
   UploadDocumentResponse,
-  RenderedAnswer,
+  AskResponse,
   ReviewResponse,
+  SummaryResponse,
   SourcePageResponse,
   DeletionResponse,
 } from './contracts';
@@ -27,21 +28,26 @@ export interface LexiGuardApi {
 
   /**
    * POST /api/documents — multipart upload; requires bearer token.
-   * Calls onProgress with a boolean when upload/processing state changes.
    */
   uploadDocument(file: File): Promise<UploadDocumentResponse>;
 
   /**
-   * POST /api/documents/{id}/ask — requires bearer token.
-   * question max length: 500 characters (also enforced by backend).
+   * POST /api/documents/{id}/ask — Single-Pass RAG pipeline.
+   * BM25 search → grounded Gemma prompt → page-cited answer.
+   * question max length: 500 characters (enforced by backend).
    */
-  askDocument(documentId: string, question: string): Promise<RenderedAnswer>;
+  askDocument(documentId: string, question: string): Promise<AskResponse>;
 
   /**
-   * POST /api/documents/{id}/review — requires bearer token.
-   * @provisional — endpoint not yet confirmed in backend source
+   * POST /api/documents/{id}/review — Core 10 topic risk assessment.
    */
   getReview(documentId: string): Promise<ReviewResponse>;
+
+  /**
+   * POST /api/documents/{id}/summarize — structured document overview.
+   * Uses Gemma with bounded 5-field prompt; falls back to extractive BM25.
+   */
+  summarizeDocument(documentId: string): Promise<SummaryResponse>;
 
   /**
    * GET /api/documents/{id}/pages/{n} — requires bearer token.

@@ -17,13 +17,14 @@ import type {
   HealthResponse,
   DocumentCard,
   UploadDocumentResponse,
-  RenderedAnswer,
+  AskResponse,
   ReviewResponse,
+  SummaryResponse,
   SourcePageResponse,
   DeletionResponse,
 } from './contracts';
 
-const REQUEST_TIMEOUT_MS = 60_000; // 60 s — generous for slow local model
+const REQUEST_TIMEOUT_MS = 90_000; // 90 s — generous for slow local model
 
 /** Called when a 401 is received — caller should clear session state. */
 type OnSessionExpired = () => void;
@@ -65,7 +66,6 @@ export class LexiGuardApiClient implements LexiGuardApi {
       const response = await fetch(input, {
         ...init,
         signal: controller.signal,
-        // Prevent caching of any API response
         cache: 'no-store',
       });
 
@@ -103,7 +103,6 @@ export class LexiGuardApiClient implements LexiGuardApi {
   // ── Session ──────────────────────────────────────────────────────────────────
 
   async exchangeLaunchCode(code: string): Promise<SessionTokenResponse> {
-    // No bearer token for this bootstrap call
     const [controller, timerId] = this._controller();
     try {
       const response = await fetch('/api/session', {
@@ -150,7 +149,6 @@ export class LexiGuardApiClient implements LexiGuardApi {
 
   async uploadDocument(file: File): Promise<UploadDocumentResponse> {
     const formData = new FormData();
-    // Backend expects field name "file" (UploadFile = File(...))
     formData.append('file', file);
 
     return this._json<UploadDocumentResponse>('/api/documents', {
@@ -160,10 +158,10 @@ export class LexiGuardApiClient implements LexiGuardApi {
     });
   }
 
-  // ── Ask ──────────────────────────────────────────────────────────────────────
+  // ── Ask (Single-Pass RAG) ─────────────────────────────────────────────────
 
-  async askDocument(documentId: string, question: string): Promise<RenderedAnswer> {
-    return this._json<RenderedAnswer>(`/api/documents/${documentId}/ask`, {
+  async askDocument(documentId: string, question: string): Promise<AskResponse> {
+    return this._json<AskResponse>(`/api/documents/${documentId}/ask`, {
       method: 'POST',
       headers: {
         ...this._authHeaders(),
@@ -186,15 +184,26 @@ export class LexiGuardApiClient implements LexiGuardApi {
         body: JSON.stringify({}),
       });
     } catch {
-      // Endpoint /review is provisional; if backend does not expose it, return empty structure
       return { topics: [], professional_questions: [] };
     }
+  }
+
+  // ── Summarize ────────────────────────────────────────────────────────────────
+
+  async summarizeDocument(documentId: string): Promise<SummaryResponse> {
+    return this._json<SummaryResponse>(`/api/documents/${documentId}/summarize`, {
+      method: 'POST',
+      headers: {
+        ...this._authHeaders(),
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({}),
+    });
   }
 
   // ── Source pages ─────────────────────────────────────────────────────────────
 
   async getPage(documentId: string, physicalPage: number): Promise<SourcePageResponse> {
-    // Backend returns plain text — we wrap it
     const response = await this._fetch(
       `/api/documents/${documentId}/pages/${physicalPage}`,
       { headers: this._authHeaders() }
@@ -212,7 +221,6 @@ export class LexiGuardApiClient implements LexiGuardApi {
   }
 
   async getPageImage(documentId: string, physicalPage: number): Promise<Blob> {
-    // @provisional — not yet in backend source
     const response = await this._fetch(
       `/api/documents/${documentId}/pages/${physicalPage}/image`,
       { headers: this._authHeaders() }

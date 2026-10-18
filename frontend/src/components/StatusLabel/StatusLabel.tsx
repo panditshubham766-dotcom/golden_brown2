@@ -1,5 +1,5 @@
 import styles from './StatusLabel.module.css';
-import type { ClaimClassification, AskStatus, ReviewTopicStatus } from '../../api/contracts';
+import type { ReviewTopicStatus } from '../../api/contracts';
 
 /**
  * Maps backend classification/status values to human-readable labels and CSS classes.
@@ -7,8 +7,8 @@ import type { ClaimClassification, AskStatus, ReviewTopicStatus } from '../../ap
  */
 
 interface StatusLabelProps {
-  value?: ClaimClassification | AskStatus | ReviewTopicStatus | string;
-  status?: ClaimClassification | AskStatus | ReviewTopicStatus | string;
+  value?: ReviewTopicStatus | string;
+  status?: ReviewTopicStatus | string;
   /** Explicit override label — use when the backend value needs specific UI wording */
   label?: string;
   className?: string;
@@ -41,7 +41,7 @@ function getClaimStyle(value: string): { cssClass: string; text: string } {
     case 'FOUND':
       return { cssClass: styles.found, text: 'Found' };
     case 'NOT_FOUND':
-      return { cssClass: styles.notFound, text: 'Not located' }; // per spec: present as "Not located"
+      return { cssClass: styles.notFound, text: 'Not located' };
     case 'NOT_ASSESSED':
       return { cssClass: styles.notAssessed, text: 'Not assessed' };
     case 'POSSIBLE_CONFLICT':
@@ -57,11 +57,9 @@ function getClaimStyle(value: string): { cssClass: string; text: string } {
       return { cssClass: styles.error, text: 'Local model unavailable' };
     case 'ERROR_PROCESSING':
       return { cssClass: styles.error, text: 'Processing error' };
-    // Concern type
     case 'CONCERN':
       return { cssClass: styles.concern, text: 'Concern' };
     default:
-      // Unknown values should NOT be silently coerced to a success state
       return { cssClass: styles.notAssessed, text: `Unknown: ${value}` };
   }
 }

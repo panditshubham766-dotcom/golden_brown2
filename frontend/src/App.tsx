@@ -4,7 +4,7 @@ import { SessionProvider, useSession } from './auth/session-state';
 import { AppStateProvider, useAppState } from './app/app-state';
 import { extractAndRemoveLaunchCode } from './auth/session-bootstrap';
 import { apiClient } from './api/client';
-import type { DeletionResponse, DocumentCard, RenderedAnswer, ReviewResponse } from './api/contracts';
+import type { AskResponse, DeletionResponse, DocumentCard, ReviewResponse } from './api/contracts';
 import { AppShell } from './components/AppShell/AppShell';
 import { Button } from './components/Button/Button';
 import { UploadView } from './features/documents/UploadView';
@@ -12,10 +12,11 @@ import { DocumentListView } from './features/documents/DocumentListView';
 import { OverviewView } from './features/documents/OverviewView';
 import { AskView } from './features/ask/AskView';
 import { ReviewView } from './features/review/ReviewView';
+import { SummaryPanel } from './features/documents/SummaryPanel';
 import { SourceViewer } from './features/source/SourceViewer';
 import { DeleteModal } from './features/delete/DeleteModal';
 
-type ActiveView = 'upload' | 'documents' | 'overview' | 'ask' | 'review';
+type ActiveView = 'upload' | 'documents' | 'overview' | 'ask' | 'review' | 'summary';
 
 function LexiGuardMain() {
   const { sessionState, setSessionState, setToken, clearSession } = useSession();
@@ -129,6 +130,13 @@ function LexiGuardMain() {
             onClick={() => setActiveView('overview')}
           >
             Overview
+          </button>
+          <button
+            type="button"
+            className={`${styles.navLink} ${activeView === 'summary' ? styles.active : ''}`}
+            onClick={() => setActiveView('summary')}
+          >
+            Summary
           </button>
           <button
             type="button"
@@ -306,8 +314,17 @@ function LexiGuardMain() {
                 setActiveView('ask');
               }}
               onNavigateToReview={() => setActiveView('review')}
+              onNavigateToSummary={() => setActiveView('summary')}
               onOpenSourceView={handleOpenSourceView}
               onRequestDelete={() => setDeleteTarget(activeDocument)}
+            />
+          )}
+
+          {activeView === 'summary' && activeDocument && (
+            <SummaryPanel
+              api={apiClient}
+              document={activeDocument}
+              onOpenSourceView={handleOpenSourceView}
             />
           )}
 
@@ -317,7 +334,7 @@ function LexiGuardMain() {
               document={activeDocument}
               currentAnswer={currentAnswer}
               initialQuestion={currentQuestion}
-              onAnswerReceived={(ans: RenderedAnswer) => setCurrentAnswer(ans)}
+              onAnswerReceived={(ans: AskResponse) => setCurrentAnswer(ans)}
               onOpenSourceView={handleOpenSourceView}
             />
           )}

@@ -1,17 +1,16 @@
 import { useCallback, useEffect, useState } from 'react';
 import styles from './AskView.module.css';
 import { Button } from '../../components/Button/Button';
-import { RenderedAnswerView } from './RenderedAnswerView';
 import type { LexiGuardApi } from '../../api/index';
-import type { DocumentCard, RenderedAnswer } from '../../api/contracts';
+import type { AskResponse, DocumentCard, PageCitation } from '../../api/contracts';
 import { ApiError } from '../../api/errors';
 
 interface AskViewProps {
   api: LexiGuardApi;
   document: DocumentCard;
-  currentAnswer: RenderedAnswer | null;
+  currentAnswer: AskResponse | null;
   initialQuestion?: string;
-  onAnswerReceived: (answer: RenderedAnswer) => void;
+  onAnswerReceived: (answer: AskResponse) => void;
   onOpenSourceView: (page: number, quote?: string, sid?: string) => void;
 }
 
@@ -21,8 +20,31 @@ const SUGGESTED_QUESTIONS = [
   "Highlight the parts related to 'Notice Period to Terminate'",
   'What is the security deposit amount and refund condition?',
   "Highlight the parts related to 'Governing Law'",
-  'Is this clause legally valid and enforceable in court?',
+  'What are the maintenance and repair obligations?',
 ];
+
+function CitationBadge({
+  citation,
+  onOpen,
+}: {
+  citation: PageCitation;
+  onOpen: (page: number, quote?: string) => void;
+}) {
+  return (
+    <button
+      type="button"
+      className={styles.citationBadge}
+      onClick={() => onOpen(citation.page, citation.snippet)}
+      title={`${citation.section ? citation.section + ' — ' : ''}${citation.snippet}`}
+    >
+      <span className={styles.citationIcon}>📄</span>
+      <span>Page {citation.page}</span>
+      {citation.section && (
+        <span className={styles.citationSection}>· {citation.section}</span>
+      )}
+    </button>
+  );
+}
 
 export function AskView({
   api,
@@ -66,10 +88,6 @@ export function AskView({
     }
   }, [question, isOverLimit, loading, api, document.document_id, onAnswerReceived]);
 
-  const handleChipClick = (q: string) => {
-    setQuestion(q);
-  };
-
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
       e.preventDefault();
@@ -83,8 +101,9 @@ export function AskView({
         <div className={styles.composerHeader}>
           <h2 className={styles.composerTitle}>Ask about this agreement</h2>
           <p className={styles.composerDesc}>
-            Ask questions about the provisions in your agreement. Answers cite exact source clauses and
-            pages. LexiGuard does not provide legal advice or predict dispute outcomes.
+            Ask questions about the provisions in your agreement. Answers are grounded in
+            document chunks and cite exact page numbers. LexiGuard does not provide legal
+            advice or predict dispute outcomes.
           </p>
         </div>
 
@@ -118,7 +137,7 @@ export function AskView({
                 key={idx}
                 type="button"
                 className={styles.chipBtn}
-                onClick={() => handleChipClick(q)}
+                onClick={() => setQuestion(q)}
                 disabled={loading}
               >
                 {q}
@@ -151,10 +170,50 @@ export function AskView({
       )}
 
       {currentAnswer && (
-        <RenderedAnswerView
-          answer={currentAnswer}
-          onOpenSourceView={onOpenSourceView}
-        />
+        <div className={styles.answerCard}>
+          {/* Status badge */}
+          <div className={styles.answerMeta}>
+            <span
+              className={`${styles.statusBadge} ${
+                currentAnswer.status === 'ANSWERED'
+                  ? styles.statusAnswered
+                  : styles.statusNotLocated
+              }`}
+            >
+              {currentAnswer.status === 'ANSWERED' ? '✓ Answered' : '○ Not Located'}
+            </span>
+            {currentAnswer.fallback && (
+              <span className={styles.fallbackNote}>
+                ⚡ Extractive fallback (Ollama unavailable)
+              </span>
+            )}
+          </div>
+
+          {/* Answer text */}
+          <div className={styles.answerText}>{currentAnswer.answer}</div>
+
+          {/* Page citations */}
+          {currentAnswer.citations && currentAnswer.citations.length > 0 && (
+            <div className={styles.citationsSection}>
+              <span className={styles.citationsLabel}>Source pages:</span>
+              <div className={styles.citationsList}>
+                {currentAnswer.citations.map((c, i) => (
+                  <CitationBadge
+                    key={i}
+                    citation={c}
+                    onOpen={(page, quote) => onOpenSourceView(page, quote)}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Legal caveat */}
+          <p className="legal-caveat" style={{ marginTop: 'var(--space-4)' }}>
+            LexiGuard extracts factual clauses from the document and does not provide legal
+            advice, enforceability determinations, or judicial predictions.
+          </p>
+        </div>
       )}
     </div>
   );

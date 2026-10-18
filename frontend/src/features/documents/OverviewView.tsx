@@ -12,6 +12,7 @@ interface OverviewViewProps {
   document: DocumentCard;
   onNavigateToAsk: (initialQuestion?: string) => void;
   onNavigateToReview: () => void;
+  onNavigateToSummary: () => void;
   onOpenSourceView: (page: number, quote?: string, sid?: string) => void;
   onRequestDelete: () => void;
 }
@@ -40,6 +41,7 @@ export function OverviewView({
   document,
   onNavigateToAsk,
   onNavigateToReview,
+  onNavigateToSummary,
   onOpenSourceView,
   onRequestDelete,
 }: OverviewViewProps) {
@@ -88,8 +90,12 @@ export function OverviewView({
             <span className={styles.docSub}>ID: {document.document_id}</span>
           </div>
 
-          <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
-            <Button variant="primary" onClick={() => onNavigateToAsk()}>
+          <div style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap' }}>
+            {/* Primary quick-actions */}
+            <Button variant="primary" onClick={onNavigateToSummary}>
+              ✦ Generate Summary
+            </Button>
+            <Button variant="secondary" onClick={() => onNavigateToAsk()}>
               Ask questions
             </Button>
             <Button variant="secondary" onClick={onNavigateToReview}>

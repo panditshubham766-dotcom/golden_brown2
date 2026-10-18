@@ -8,8 +8,6 @@
  * - All data is in-memory only. Nothing is persisted.
  * - Never contacts any external host.
  * - Clearly labelled as synthetic mock data.
- * - Supports realistic edge cases: ambiguity, conflict, OCR, language limitation,
- *   legal limit, model unavailable, deletion failure.
  */
 
 import type { LexiGuardApi } from './index';
@@ -18,8 +16,9 @@ import type {
   HealthResponse,
   DocumentCard,
   UploadDocumentResponse,
-  RenderedAnswer,
+  AskResponse,
   ReviewResponse,
+  SummaryResponse,
   SourcePageResponse,
   DeletionResponse,
 } from './contracts';
@@ -67,282 +66,135 @@ const MOCK_PAGES: Record<string, Record<number, string>> = {
     1: '[SYNTHETIC — NOT A REAL AGREEMENT]\n\nThis Leave and Licence Agreement is made on the 1st day of November 2026 between:\n\nLicensor: Mr. Rajan Mehta, residing at 45, Green Valley Road, Pune 411001\nLicensee: Ms. Priya Sharma, residing at 22, Lakeview Apartments, Mumbai 400001\n\nProperty: Flat No. 301, Silver Heights, Kharadi, Pune 411014',
     2: '[SYNTHETIC — NOT A REAL AGREEMENT]\n\n2. TERM\n\nThis agreement shall be valid for a period of eleven (11) months commencing from 1st November 2026 and ending on 30th September 2027.\n\n3. LICENCE FEE\n\nThe monthly licence fee shall be Rs. 25,000/- (Rupees Twenty-Five Thousand Only) payable on or before the 5th day of each month.\n\nA late payment charge of Rs. 500/- per day shall apply after the 5th day of the month.',
     3: '[SYNTHETIC — NOT A REAL AGREEMENT]\n\n4. SECURITY DEPOSIT\n\nThe Licensee shall pay a refundable security deposit of Rs. 75,000/- (Rupees Seventy-Five Thousand Only) at the time of signing this agreement.\n\nThe deposit shall be refunded within 30 days of the Licensee vacating the premises, subject to deduction of outstanding dues and repair charges.',
-    4: '[SYNTHETIC — NOT A REAL AGREEMENT]\n\n5. NOTICE PERIOD\n\nEither party wishing to terminate this agreement shall give 30 (thirty) days written notice to the other party.\n\n6. LOCK-IN PERIOD\n\nBoth parties agree to a lock-in period of 6 (six) months from the commencement date. During this period, neither party may terminate this agreement except by mutual written consent.\n\n[Note: Clause 5 gives 30 days notice. Clause 8 below refers to 60 days notice for the Licensor — this may constitute a conflict in the agreement.]',
+    4: '[SYNTHETIC — NOT A REAL AGREEMENT]\n\n5. NOTICE PERIOD\n\nEither party wishing to terminate this agreement shall give 30 (thirty) days written notice to the other party.\n\n6. LOCK-IN PERIOD\n\nBoth parties agree to a lock-in period of 6 (six) months from the commencement date. During this period, neither party may terminate this agreement except by mutual written consent.',
     5: '[SYNTHETIC — NOT A REAL AGREEMENT]\n\n7. RESTRICTIONS\n\nThe Licensee shall not:\na) Sublet or assign the premises to any third party without prior written consent of the Licensor.\nb) Keep pets or animals on the premises.\nc) Make any structural alterations to the premises.\n\n8. TERMINATION BY LICENSOR\n\nThe Licensor may terminate this agreement by giving 60 (sixty) days written notice to the Licensee.',
   },
   [MOCK_DOC_ID_2]: {
     1: '[SYNTHETIC — NOT A REAL AGREEMENT]\n\nRental Agreement for residential premises at Plot 12, Sector 5, Noida 201301.\nTenant: Mr. Arjun Das | Landlord: XYZ Properties Pvt. Ltd.\n\nMonthly Rent: Rs. 18,000/-. Duration: 11 months.',
     2: '[SYNTHETIC — NOT A REAL AGREEMENT]\n\n2. The tenant shall maintain the property in good condition.\n3. Maintenance of common areas is the responsibility of the housing society.',
-    3: '[SYNTHETIC — NOT A REAL AGREEMENT]\n\n[PAGE LANGUAGE GATE TRIGGERED — possible non-English content detected on this page. The following text may not have been fully assessed.]\n\n... [page content may be partially unassessed] ...',
+    3: '[SYNTHETIC — NOT A REAL AGREEMENT]\n\n[PAGE LANGUAGE GATE TRIGGERED — possible non-English content detected on this page.]\n\n... [page content may be partially unassessed] ...',
     4: '[SYNTHETIC — NOT A REAL AGREEMENT]\n\n5. DISPUTE RESOLUTION\n\nAll disputes arising out of or in connection with this agreement shall be subject to the jurisdiction of courts in Noida, Uttar Pradesh.',
   },
 };
 
-// Synthetic answer fixtures
-function makeMockAnswer(docId: string, question: string): RenderedAnswer {
+// ── Single-Pass RAG mock answers ──────────────────────────────────────────────
+function makeMockAnswer(docId: string, question: string): AskResponse {
   const lowerQ = question.toLowerCase();
 
-  // Legal limit scenario
+  // Legal boundary
   if (lowerQ.includes('enforceable') || lowerQ.includes('valid') || lowerQ.includes('legal')) {
     return {
-      status: 'LEGAL_LIMIT',
-      answer: 'LexiGuard provides factual document triage and cannot provide legal verdicts, enforceability determinations, or judicial predictions. Below are the relevant clauses located in your agreement. Please consult a qualified legal professional to evaluate enforceability under applicable jurisdiction law.',
-      claims: [
-        {
-          claim_id: 'item_001',
-          text: 'The agreement states a lock-in period of 6 months from the commencement date.',
-          classification: 'DIRECT',
-          evidence: [
-            { sid: 'sid_lock_001', page: 4, section: '6. LOCK-IN PERIOD', quote: 'Both parties agree to a lock-in period of 6 (six) months from the commencement date. During this period, neither party may terminate this agreement except by mutual written consent.', ocr_derived: false }
-          ],
-        },
+      status: 'ANSWERED',
+      answer: 'LexiGuard provides factual document triage and cannot provide legal verdicts or enforceability determinations. The agreement contains a lock-in period of 6 months (Page 4). Please consult a qualified legal professional for enforceability questions.',
+      citations: [
+        { page: 4, snippet: 'Both parties agree to a lock-in period of 6 (six) months from the commencement date.', section: '6. LOCK-IN PERIOD' },
       ],
-      interpretations: [],
-      concerns: [],
-      ambiguities: [],
-      conflicts: [],
-      general_explanations: [],
-      missing_information: [],
-      extraction_warnings: [],
-      external_law_required: true,
-      jurisdiction_flags: ['May depend on local law — confirm locally.'],
-      recommend_professional_review: true,
+      fallback: false,
       legal_verdict: null,
     };
   }
 
-  // Notice period conflict scenario
+  // Notice period
   if (lowerQ.includes('notice')) {
     return {
-      status: 'AMBIGUOUS',
-      answer: 'The agreement contains two different notice periods that may conflict with each other.',
-      claims: [
-        {
-          claim_id: 'item_001',
-          text: 'Clause 5 states that either party wishing to terminate shall give 30 days written notice.',
-          classification: 'DIRECT',
-          evidence: [
-            { sid: 'sid_notice_001', page: 4, section: '5. NOTICE PERIOD', quote: 'Either party wishing to terminate this agreement shall give 30 (thirty) days written notice to the other party.', ocr_derived: false }
-          ],
-        },
+      status: 'ANSWERED',
+      answer: 'The agreement specifies a 30-day written notice period for either party wishing to terminate (Page 4). Note: Clause 8 on Page 5 separately specifies 60 days for the Licensor — these may conflict.',
+      citations: [
+        { page: 4, snippet: 'Either party wishing to terminate this agreement shall give 30 (thirty) days written notice to the other party.', section: '5. NOTICE PERIOD' },
+        { page: 5, snippet: 'The Licensor may terminate this agreement by giving 60 (sixty) days written notice to the Licensee.', section: '8. TERMINATION BY LICENSOR' },
       ],
-      interpretations: [],
-      concerns: [],
-      ambiguities: [],
-      conflicts: [
-        {
-          item_id: 'conflict_001',
-          text: 'Clause 5 refers to a 30-day notice period for either party, while Clause 8 separately specifies a 60-day notice period for the Licensor\'s termination. These two clauses give different notice periods for the same scenario.',
-          evidence: [
-            { sid: 'sid_notice_001', page: 4, section: '5. NOTICE PERIOD', quote: 'Either party wishing to terminate this agreement shall give 30 (thirty) days written notice to the other party.', ocr_derived: false },
-            { sid: 'sid_term_001', page: 5, section: '8. TERMINATION BY LICENSOR', quote: 'The Licensor may terminate this agreement by giving 60 (sixty) days written notice to the Licensee.', ocr_derived: false },
-          ],
-        },
-      ],
-      general_explanations: [],
-      missing_information: [],
-      extraction_warnings: [],
-      external_law_required: false,
-      jurisdiction_flags: [],
-      recommend_professional_review: true,
+      fallback: false,
       legal_verdict: null,
     };
   }
 
-  // Rent query
+  // Rent / fee
   if (lowerQ.includes('rent') || lowerQ.includes('payment') || lowerQ.includes('fee')) {
     return {
       status: 'ANSWERED',
-      answer: 'The agreement sets out the monthly licence fee and a late payment charge.',
-      claims: [
-        {
-          claim_id: 'item_001',
-          text: 'The monthly licence fee is Rs. 25,000/- payable on or before the 5th day of each month.',
-          classification: 'DIRECT',
-          evidence: [
-            { sid: 'sid_rent_001', page: 2, section: '3. LICENCE FEE', quote: 'The monthly licence fee shall be Rs. 25,000/- (Rupees Twenty-Five Thousand Only) payable on or before the 5th day of each month.', ocr_derived: false }
-          ],
-        },
-        {
-          claim_id: 'item_002',
-          text: 'A late payment charge of Rs. 500/- per day applies after the 5th day of the month.',
-          classification: 'DIRECT',
-          evidence: [
-            { sid: 'sid_rent_002', page: 2, section: '3. LICENCE FEE', quote: 'A late payment charge of Rs. 500/- per day shall apply after the 5th day of the month.', ocr_derived: false }
-          ],
-        },
+      answer: 'The monthly licence fee is Rs. 25,000/- payable on or before the 5th day of each month (Page 2). A late payment charge of Rs. 500/- per day applies after the 5th.',
+      citations: [
+        { page: 2, snippet: 'The monthly licence fee shall be Rs. 25,000/- (Rupees Twenty-Five Thousand Only) payable on or before the 5th day of each month.', section: '3. LICENCE FEE' },
+        { page: 2, snippet: 'A late payment charge of Rs. 500/- per day shall apply after the 5th day of the month.', section: '3. LICENCE FEE' },
       ],
-      interpretations: [],
-      concerns: [
-        {
-          item_id: 'concern_001',
-          text: 'The daily late payment charge accrues from the 5th day of the month. This could result in significant amounts over a payment cycle.',
-          evidence: [
-            { sid: 'sid_rent_002', page: 2, section: '3. LICENCE FEE', quote: 'A late payment charge of Rs. 500/- per day shall apply after the 5th day of the month.', ocr_derived: false }
-          ],
-        },
-      ],
-      ambiguities: [],
-      conflicts: [],
-      general_explanations: [],
-      missing_information: [],
-      extraction_warnings: [],
-      external_law_required: false,
-      jurisdiction_flags: [],
-      recommend_professional_review: false,
+      fallback: false,
       legal_verdict: null,
     };
   }
 
-  // Deposit query
+  // Deposit
   if (lowerQ.includes('deposit')) {
     return {
       status: 'ANSWERED',
-      answer: 'The agreement specifies a refundable security deposit amount and refund conditions.',
-      claims: [
-        {
-          claim_id: 'item_001',
-          text: 'The security deposit is Rs. 75,000/- to be paid at the time of signing.',
-          classification: 'DIRECT',
-          evidence: [
-            { sid: 'sid_dep_001', page: 3, section: '4. SECURITY DEPOSIT', quote: 'The Licensee shall pay a refundable security deposit of Rs. 75,000/- (Rupees Seventy-Five Thousand Only) at the time of signing this agreement.', ocr_derived: false }
-          ],
-        },
-        {
-          claim_id: 'item_002',
-          text: 'The deposit is to be refunded within 30 days of vacating, subject to deduction of outstanding dues and repair charges.',
-          classification: 'DIRECT',
-          evidence: [
-            { sid: 'sid_dep_002', page: 3, section: '4. SECURITY DEPOSIT', quote: 'The deposit shall be refunded within 30 days of the Licensee vacating the premises, subject to deduction of outstanding dues and repair charges.', ocr_derived: false }
-          ],
-        },
+      answer: 'The security deposit is Rs. 75,000/- payable at signing (Page 3). It shall be refunded within 30 days of vacating, subject to deduction of outstanding dues and repair charges.',
+      citations: [
+        { page: 3, snippet: 'The Licensee shall pay a refundable security deposit of Rs. 75,000/- (Rupees Seventy-Five Thousand Only) at the time of signing this agreement.', section: '4. SECURITY DEPOSIT' },
+        { page: 3, snippet: 'The deposit shall be refunded within 30 days of the Licensee vacating the premises, subject to deduction of outstanding dues and repair charges.', section: '4. SECURITY DEPOSIT' },
       ],
-      interpretations: [
-        {
-          item_id: 'interp_001',
-          text: 'The phrase "subject to deduction of outstanding dues and repair charges" leaves the specific basis for deductions unspecified in this clause.',
-          evidence: [
-            { sid: 'sid_dep_002', page: 3, section: '4. SECURITY DEPOSIT', quote: 'subject to deduction of outstanding dues and repair charges', ocr_derived: false }
-          ],
-        },
-      ],
-      concerns: [],
-      ambiguities: [
-        {
-          item_id: 'amb_001',
-          text: 'The agreement does not define "repair charges" or specify how the cost of repairs will be assessed. This ambiguity relates to how much of the deposit may be retained.',
-          evidence: [
-            { sid: 'sid_dep_002', page: 3, section: '4. SECURITY DEPOSIT', quote: 'subject to deduction of outstanding dues and repair charges', ocr_derived: false }
-          ],
-        },
-      ],
-      conflicts: [],
-      general_explanations: [],
-      missing_information: [],
-      extraction_warnings: [],
-      external_law_required: false,
-      jurisdiction_flags: ['May depend on local law — confirm locally.'],
-      recommend_professional_review: false,
+      fallback: false,
       legal_verdict: null,
     };
   }
 
-  // Out of scope scenario
-  if (lowerQ.includes('stock') || lowerQ.includes('tax return') || lowerQ.includes('cricket')) {
-    return {
-      status: 'OUT_OF_SCOPE',
-      answer: 'This question is outside the scope of what LexiGuard can help with. LexiGuard is designed to help you understand what your rental or leave-and-licence agreement states. Please ask a question about your uploaded document.',
-      claims: [],
-      interpretations: [],
-      concerns: [],
-      ambiguities: [],
-      conflicts: [],
-      general_explanations: [],
-      missing_information: [],
-      extraction_warnings: [],
-      external_law_required: false,
-      jurisdiction_flags: [],
-      recommend_professional_review: false,
-      legal_verdict: null,
-    };
-  }
-
-  // OCR language limitation scenario for doc 2
-  if (docId === MOCK_DOC_ID_2 && (lowerQ.includes('page 3') || lowerQ.includes('third page'))) {
-    return {
-      status: 'LIMITED',
-      answer: 'Page 3 of this document triggered the language gate — possible non-English content was detected. This page could not be fully assessed.',
-      claims: [],
-      interpretations: [],
-      concerns: [],
-      ambiguities: [],
-      conflicts: [],
-      general_explanations: [],
-      missing_information: [
-        { code: 'UNREADABLE_CONTENT', message: 'Page 3: language gate triggered — possible non-English content detected. This page has not been fully assessed.' },
-      ],
-      extraction_warnings: ['Page 3: language gate triggered — possible non-English content.'],
-      external_law_required: false,
-      jurisdiction_flags: [],
-      recommend_professional_review: false,
-      legal_verdict: null,
-    };
-  }
-
-  // Not located scenario
-  if (lowerQ.includes('pet') || lowerQ.includes('cat') || lowerQ.includes('dog')) {
+  // Parties
+  if (lowerQ.includes('parties') || lowerQ.includes('licensor') || lowerQ.includes('licensee')) {
     return {
       status: 'ANSWERED',
-      answer: 'The agreement addresses keeping pets on the premises.',
-      claims: [
-        {
-          claim_id: 'item_001',
-          text: 'The Licensee is restricted from keeping pets or animals on the premises.',
-          classification: 'DIRECT',
-          evidence: [
-            { sid: 'sid_rest_001', page: 5, section: '7. RESTRICTIONS', quote: 'Keep pets or animals on the premises.', ocr_derived: false }
-          ],
-        },
+      answer: 'The Licensor is Mr. Rajan Mehta and the Licensee is Ms. Priya Sharma (Page 1). The property is Flat No. 301, Silver Heights, Kharadi, Pune 411014.',
+      citations: [
+        { page: 1, snippet: 'Licensor: Mr. Rajan Mehta, residing at 45, Green Valley Road, Pune 411001\nLicensee: Ms. Priya Sharma, residing at 22, Lakeview Apartments, Mumbai 400001', section: '' },
       ],
-      interpretations: [],
-      concerns: [],
-      ambiguities: [],
-      conflicts: [],
-      general_explanations: [],
-      missing_information: [],
-      extraction_warnings: [],
-      external_law_required: false,
-      jurisdiction_flags: [],
-      recommend_professional_review: false,
+      fallback: false,
       legal_verdict: null,
     };
   }
 
-  // Default: general answer
+  // Out of scope
+  if (lowerQ.includes('stock') || lowerQ.includes('tax return') || lowerQ.includes('cricket')) {
+    return {
+      status: 'NOT_LOCATED',
+      answer: 'The document does not contain this information.',
+      citations: [],
+      fallback: false,
+      legal_verdict: null,
+    };
+  }
+
+  // Language gate
+  if (docId === MOCK_DOC_ID_2 && (lowerQ.includes('page 3') || lowerQ.includes('third page'))) {
+    return {
+      status: 'ANSWERED',
+      answer: 'Page 3 of this document triggered the language gate — possible non-English content was detected. This page could not be fully assessed. (Page 3)',
+      citations: [
+        { page: 3, snippet: '[PAGE LANGUAGE GATE TRIGGERED — possible non-English content detected on this page.]', section: '' },
+      ],
+      fallback: false,
+      legal_verdict: null,
+    };
+  }
+
+  // Pets / restrictions
+  if (lowerQ.includes('pet') || lowerQ.includes('cat') || lowerQ.includes('dog') || lowerQ.includes('restriction')) {
+    return {
+      status: 'ANSWERED',
+      answer: 'The Licensee is restricted from keeping pets or animals on the premises (Page 5). Subletting and structural alterations are also prohibited.',
+      citations: [
+        { page: 5, snippet: 'Keep pets or animals on the premises.', section: '7. RESTRICTIONS' },
+      ],
+      fallback: false,
+      legal_verdict: null,
+    };
+  }
+
+  // Default general answer
   return {
     status: 'ANSWERED',
-    answer: 'Based on the retrieved provisions, here is what the agreement states about this topic.',
-    claims: [
-      {
-        claim_id: 'item_001',
-        text: 'This agreement is a Leave and Licence agreement valid for 11 months between a Licensor and a Licensee.',
-        classification: 'DIRECT',
-        evidence: [
-          { sid: 'sid_term_gen', page: 1, section: '', quote: 'This Leave and Licence Agreement is made on the 1st day of November 2026...', ocr_derived: false },
-          { sid: 'sid_term_dur', page: 2, section: '2. TERM', quote: 'This agreement shall be valid for a period of eleven (11) months commencing from 1st November 2026 and ending on 30th September 2027.', ocr_derived: false },
-        ],
-      },
+    answer: `Based on the retrieved document provisions: This is a Leave and Licence Agreement valid for 11 months between Mr. Rajan Mehta (Licensor) and Ms. Priya Sharma (Licensee) for Flat No. 301, Silver Heights, Kharadi, Pune. (Pages 1–2)`,
+    citations: [
+      { page: 1, snippet: 'This Leave and Licence Agreement is made on the 1st day of November 2026...', section: '' },
+      { page: 2, snippet: 'This agreement shall be valid for a period of eleven (11) months commencing from 1st November 2026 and ending on 30th September 2027.', section: '2. TERM' },
     ],
-    interpretations: [],
-    concerns: [],
-    ambiguities: [],
-    conflicts: [],
-    general_explanations: [],
-    missing_information: [],
-    extraction_warnings: [],
-    external_law_required: false,
-    jurisdiction_flags: [],
-    recommend_professional_review: false,
+    fallback: false,
     legal_verdict: null,
   };
 }
@@ -353,7 +205,7 @@ function makeMockReview(docId: string): ReviewResponse {
     { topic_id: 'term', label: 'Term', status: 'FOUND' as const, evidence: [{ sid: 'sid_term', page: 2, section: '2. TERM', quote: 'This agreement shall be valid for a period of eleven (11) months...', ocr_derived: false }] },
     { topic_id: 'rent', label: 'Rent', status: 'FOUND' as const, evidence: [{ sid: 'sid_rent_001', page: 2, section: '3. LICENCE FEE', quote: 'The monthly licence fee shall be Rs. 25,000/-...', ocr_derived: false }], attention_reason: 'Contains a late payment penalty clause.' },
     { topic_id: 'deposit', label: 'Deposit', status: 'AMBIGUOUS' as const, evidence: [{ sid: 'sid_dep_001', page: 3, section: '4. SECURITY DEPOSIT', quote: 'The Licensee shall pay a refundable security deposit of Rs. 75,000/-...', ocr_derived: false }], attention_reason: 'Deduction criteria are not specified.' },
-    { topic_id: 'notice', label: 'Notice', status: 'POSSIBLE_CONFLICT' as const, evidence: [{ sid: 'sid_notice_001', page: 4, section: '5. NOTICE PERIOD', quote: 'Either party wishing to terminate this agreement shall give 30 (thirty) days written notice...', ocr_derived: false }], attention_reason: 'Listed first because two clauses give different notice periods.' },
+    { topic_id: 'notice', label: 'Notice', status: 'POSSIBLE_CONFLICT' as const, evidence: [{ sid: 'sid_notice_001', page: 4, section: '5. NOTICE PERIOD', quote: 'Either party wishing to terminate this agreement shall give 30 (thirty) days written notice...', ocr_derived: false }], attention_reason: 'Two clauses give different notice periods (30 days vs 60 days).' },
     { topic_id: 'lock_in', label: 'Lock-in', status: 'FOUND' as const, evidence: [{ sid: 'sid_lock_001', page: 4, section: '6. LOCK-IN PERIOD', quote: 'Both parties agree to a lock-in period of 6 (six) months...', ocr_derived: false }], attention_reason: 'Contains forfeiture/lock-in obligation.' },
     { topic_id: 'penalties', label: 'Penalties', status: 'FOUND' as const, evidence: [{ sid: 'sid_rent_002', page: 2, section: '3. LICENCE FEE', quote: 'A late payment charge of Rs. 500/- per day shall apply after the 5th day of the month.', ocr_derived: false }] },
     { topic_id: 'restrictions', label: 'Restrictions', status: 'FOUND' as const, evidence: [{ sid: 'sid_rest_001', page: 5, section: '7. RESTRICTIONS', quote: 'The Licensee shall not: a) Sublet or assign the premises...', ocr_derived: false }] },
@@ -383,13 +235,38 @@ function makeMockReview(docId: string): ReviewResponse {
   };
 }
 
+function makeMockSummary(docId: string): SummaryResponse {
+  const isDoc2 = docId === MOCK_DOC_ID_2;
+  return {
+    document_id: docId,
+    summary_markdown: isDoc2
+      ? `## Document Overview\n\n**Document Type & Identified Parties**  \nResidential Rental Agreement between Mr. Arjun Das (Tenant) and XYZ Properties Pvt. Ltd. (Landlord) for Plot 12, Sector 5, Noida 201301.\n\n**Effective Date & Term/Duration**  \n11-month duration. Exact commencement date not located in readable pages.\n\n**Core Purpose / Key Obligations**  \nResidential tenancy at Rs. 18,000/- per month. Tenant responsible for maintaining property in good condition.\n\n**Critical Clauses** *(rent, deposit, notice, lock-in, penalties)*  \nMonthly rent: Rs. 18,000/-. Dispute resolution under Noida court jurisdiction (Page 4). Page 3 was not fully assessed (language gate).\n\n**Notable Risks / Items Requiring Attention**  \nPage 3 triggered the language gate — content may be incomplete. Deposit and notice terms not clearly located.`
+      : `## Document Overview\n\n**Document Type & Identified Parties**  \nLeave and Licence Agreement between Mr. Rajan Mehta (Licensor) of Pune and Ms. Priya Sharma (Licensee) of Mumbai, for Flat No. 301, Silver Heights, Kharadi, Pune 411014. (Page 1)\n\n**Effective Date & Term/Duration**  \n11 months from 1st November 2026 to 30th September 2027. (Page 2)\n\n**Core Purpose / Key Obligations**  \nResidential leave and licence arrangement. Monthly licence fee of Rs. 25,000/- due by the 5th of each month. Licensee must maintain the property and comply with restrictions. (Pages 2–5)\n\n**Critical Clauses** *(rent, deposit, notice, lock-in, penalties)*  \nLicence fee: Rs. 25,000/-/month with Rs. 500/-/day late penalty (Page 2). Security deposit: Rs. 75,000/- refundable within 30 days of vacating (Page 3). Notice period: 30 days (Clause 5, Page 4) — conflicts with 60 days in Clause 8 (Page 5). Lock-in: 6 months (Page 4).\n\n**Notable Risks / Items Requiring Attention**  \nConflicting notice periods (30 days vs 60 days) in Clauses 5 and 8. Deposit deduction criteria are unspecified. Maintenance obligations are not explicitly covered.`,
+    key_points: isDoc2
+      ? [
+          { label: 'Identified Parties', value: 'Mr. Arjun Das (Tenant) and XYZ Properties Pvt. Ltd. (Landlord).', page_refs: [1] },
+          { label: 'Rent / Licence Fee', value: 'Monthly rent: Rs. 18,000/-', page_refs: [1] },
+          { label: 'Dispute Resolution', value: 'Courts in Noida, Uttar Pradesh.', page_refs: [4] },
+        ]
+      : [
+          { label: 'Identified Parties', value: 'Licensor: Mr. Rajan Mehta (Pune). Licensee: Ms. Priya Sharma (Mumbai).', page_refs: [1] },
+          { label: 'Effective Date & Term', value: '11 months: 1st November 2026 to 30th September 2027.', page_refs: [2] },
+          { label: 'Core Purpose / Key Obligations', value: 'Residential leave & licence. Monthly fee Rs. 25,000/- due by the 5th.', page_refs: [2] },
+          { label: 'Critical Clauses', value: 'Deposit Rs. 75,000/- (Page 3). Notice: 30 days/60 days conflict (Pages 4–5). Lock-in: 6 months (Page 4).', page_refs: [3, 4, 5] },
+          { label: 'Notable Risks / Items Requiring Attention', value: 'Conflicting notice periods. Unspecified deposit deduction criteria. No explicit maintenance clause.', page_refs: [4, 5] },
+        ],
+    referenced_pages: isDoc2 ? [1, 2, 4] : [1, 2, 3, 4, 5],
+    model_used: 'mock-gemma4',
+    fallback: false,
+  };
+}
+
 export class MockApiClient implements LexiGuardApi {
   async exchangeLaunchCode(code: string): Promise<SessionTokenResponse> {
     await delay(300);
     if (code === 'invalid-code' || code === 'expired-code') {
       throw new ApiError('session-expired', 'Invalid, expired or already-used launch code.', 401);
     }
-    // Accept any code in mock mode
     return { token: 'mock-token-synthetic-data-only' };
   }
 
@@ -404,15 +281,13 @@ export class MockApiClient implements LexiGuardApi {
   }
 
   async uploadDocument(file: File): Promise<UploadDocumentResponse> {
-    await delay(1500); // Simulate processing time
+    await delay(1500);
 
-    // Simulate unsupported type
     const name = file.name.toLowerCase();
     if (!name.endsWith('.pdf') && !name.endsWith('.txt')) {
-      throw new ApiError('unsupported-type', 'File is not a supported format. Upload a PDF (starting with %PDF-) or a plain-text (.txt) file.', 422);
+      throw new ApiError('unsupported-type', 'File is not a supported format. Upload a PDF or a plain-text (.txt) file.', 422);
     }
 
-    // Simulate size check
     if (file.size > 50 * 1024 * 1024) {
       throw new ApiError('too-large', 'File size exceeds the maximum upload size of 50 MB.', 413);
     }
@@ -427,7 +302,6 @@ export class MockApiClient implements LexiGuardApi {
       created_at: new Date().toISOString(),
     };
     RUNTIME_DOCS.set(docId, newCard);
-    // Add synthetic pages
     MOCK_PAGES[docId] = {
       1: '[SYNTHETIC — NOT A REAL AGREEMENT]\n\nUploaded document: Page 1 of synthetic test content.\nThis is mock data created for development purposes only.',
       2: '[SYNTHETIC — NOT A REAL AGREEMENT]\n\nPage 2 — synthetic content for development.',
@@ -442,7 +316,7 @@ export class MockApiClient implements LexiGuardApi {
     };
   }
 
-  async askDocument(documentId: string, question: string): Promise<RenderedAnswer> {
+  async askDocument(documentId: string, question: string): Promise<AskResponse> {
     await delay(1200);
     if (!RUNTIME_DOCS.has(documentId)) {
       throw new ApiError('not-found', 'Document not found.', 404);
@@ -459,6 +333,14 @@ export class MockApiClient implements LexiGuardApi {
       throw new ApiError('not-found', 'Document not found.', 404);
     }
     return makeMockReview(documentId);
+  }
+
+  async summarizeDocument(documentId: string): Promise<SummaryResponse> {
+    await delay(2000); // Simulate Gemma inference time
+    if (!RUNTIME_DOCS.has(documentId)) {
+      throw new ApiError('not-found', 'Document not found.', 404);
+    }
+    return makeMockSummary(documentId);
   }
 
   async getPage(documentId: string, physicalPage: number): Promise<SourcePageResponse> {
@@ -484,7 +366,6 @@ export class MockApiClient implements LexiGuardApi {
   }
 
   async getPageImage(_documentId: string, _physicalPage: number): Promise<Blob> {
-    // Page images not available in mock mode
     throw new ApiError('not-found', 'Page images are not available in mock mode.', 404);
   }
 

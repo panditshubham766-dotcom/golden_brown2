@@ -1,12 +1,7 @@
 /**
- * LexiGuard API wire contracts — derived from backend source analysis.
+ * LexiGuard API wire contracts.
  *
- * PROVISIONAL SHAPES are marked with @provisional comments where the backend
- * source does not fully establish every field. These must be confirmed against
- * the backend's OpenAPI schema before live integration.
- *
- * IMPORTANT: Do not add fields here that are not confirmed in the backend source.
- * Speculative fields must stay in this file with @provisional annotations.
+ * IMPORTANT: Do not add fields that are not confirmed in the backend source.
  */
 
 // ── Session ───────────────────────────────────────────────────────────────────
@@ -50,7 +45,7 @@ export type DocumentStatus = 'ready' | 'processing' | 'error' | string;
 export interface UploadDocumentResponse {
   document_id: string;
   page_count: number;
-  /** Quality metadata object (exact shape @provisional — backend returns dict[str, object]) */
+  /** Quality metadata object */
   quality: Record<string, unknown>;
   warnings: string[];
   /** "ready" | "partial" | "error" — from worker.py */
@@ -72,91 +67,37 @@ export interface EvidenceItem {
   ocr_derived: boolean;
 }
 
-// ── Ask / RenderedAnswer ──────────────────────────────────────────────────────
+// ── Ask / Single-Pass RAG ─────────────────────────────────────────────────────
 
-/**
- * Overall answer status — from runtime.py and router.py.
- * These are distinct from ReviewTopicStatus — do not conflate.
- */
-export type AskStatus =
-  | 'ANSWERED'
-  | 'LIMITED'
-  | 'NOT_LOCATED'
-  | 'AMBIGUOUS'
-  | 'CONFLICTING'
-  | 'INSUFFICIENT_EVIDENCE'
-  | 'LEGAL_LIMIT'
-  | 'OUT_OF_SCOPE'
-  | 'ERROR_LOCAL_MODEL_UNAVAILABLE'
-  | 'ERROR_PROCESSING';
-
-/**
- * Rendered claim classification — from renderer.py.
- * Distinct from the internal point kind enum.
- */
-export type ClaimClassification =
-  | 'DIRECT'
-  | 'SUPPORTED'
-  | 'INTERPRETIVE'
-  | 'AMBIGUOUS'
-  | 'CONFLICTING'
-  | 'GENERAL_EXPLANATION'
-  | 'NOT_LOCATED'
-  | 'INSUFFICIENT_EVIDENCE'
-  | 'OUT_OF_SCOPE';
-
-/** A single claim with evidence — from ClaimItem in renderer.py */
-export interface ClaimItem {
-  claim_id: string;
-  text: string;
-  classification: ClaimClassification | string;
-  evidence: EvidenceItem[];
-}
-
-/** Generic list item for interpretations, concerns, ambiguities, conflicts, general_explanations */
-export interface ListItem {
-  item_id: string;
-  text: string;
-  evidence?: EvidenceItem[];
-}
-
-/** Missing information item — @provisional (backend returns List[Dict[str, Any]]) */
-export interface MissingInformationItem {
-  /** UNREADABLE_CONTENT | REFERENCED_MATERIAL_NOT_PROVIDED | TOPIC_NOT_LOCATED | CONTEXT_REQUIRED */
-  code?: string;
-  message?: string;
-  [key: string]: unknown;
+/** A page-level citation returned by the /ask endpoint */
+export interface PageCitation {
+  page: number;
+  snippet: string;
+  section: string;
 }
 
 /**
- * Server-generated rendered answer — from renderer.py RenderedAnswer.
- * legal_verdict is always null by design.
+ * Response from POST /api/documents/{id}/ask (Single-Pass RAG pipeline).
+ * legal_verdict is always null by design — non-verdict policy.
  */
-export interface RenderedAnswer {
-  status: AskStatus | string;
+export interface AskResponse {
+  status: 'ANSWERED' | 'NOT_LOCATED' | string;
   answer: string;
-  claims: ClaimItem[];
-  interpretations: ListItem[];
-  concerns: ListItem[];
-  ambiguities: ListItem[];
-  conflicts: ListItem[];
-  general_explanations: ListItem[];
-  missing_information: MissingInformationItem[];
-  extraction_warnings: string[];
-  external_law_required: boolean;
-  jurisdiction_flags: string[];
-  recommend_professional_review: boolean;
-  /** Always null — never display as a verdict */
+  citations: PageCitation[];
+  fallback: boolean;
   legal_verdict: null;
 }
+
+/**
+ * @deprecated Legacy alias — prefer AskResponse for new code.
+ */
+export type RenderedAnswer = AskResponse;
 
 // ── Review ────────────────────────────────────────────────────────────────────
 
 /**
- * Review topic status — distinct from AskStatus.
- * Present NOT_FOUND as "Not located" in the UI.
- * NOT_ASSESSED must never be presented as absence.
- * @provisional — POST /api/documents/{id}/review not yet confirmed in backend source
+ * Review topic status.
+ * NOT_ASSESSED must never be presented as absence of a clause.
  */
 export type ReviewTopicStatus =
   | 'FOUND'
@@ -165,7 +106,6 @@ export type ReviewTopicStatus =
   | 'POSSIBLE_CONFLICT'
   | 'NOT_ASSESSED';
 
-/** @provisional — full review schema not yet in backend source */
 export interface ReviewTopic {
   topic_id: string;
   label: string;
@@ -175,33 +115,48 @@ export interface ReviewTopic {
   attention_reason?: string;
 }
 
-/** @provisional */
 export interface ReviewResponse {
   topics: ReviewTopic[];
   professional_questions: ProfessionalQuestion[];
 }
 
-/** @provisional */
 export interface ProfessionalQuestion {
   question_id: string;
   text: string;
   evidence?: EvidenceItem[];
 }
 
+// ── Summarize ─────────────────────────────────────────────────────────────────
+
+/** A single structured key point extracted by the /summarize endpoint */
+export interface SummaryKeyPoint {
+  label: string;
+  value: string;
+  page_refs: number[];
+}
+
+/** POST /api/documents/{id}/summarize — response */
+export interface SummaryResponse {
+  document_id: string;
+  /** Full markdown-formatted summary text from Gemma or extractive fallback */
+  summary_markdown: string;
+  /** Structured key points with page citations */
+  key_points: SummaryKeyPoint[];
+  /** Physical page numbers referenced in building the summary */
+  referenced_pages: number[];
+  /** Model/strategy that produced the summary (e.g. "gemma4:..." or "extractive-bm25") */
+  model_used: string;
+  /** True when Ollama was unavailable and BM25 extractive fallback was used */
+  fallback: boolean;
+}
+
 // ── Source page ───────────────────────────────────────────────────────────────
 
 /**
  * GET /api/documents/{id}/pages/{n} returns plain text.
- * This type wraps parsed metadata — confirm printed_label field with backend.
- * @provisional for fields beyond norm_text
  */
 export interface SourcePageResponse {
-  /** Physical page number (1-based) */
   physical_page: number;
-  /**
-   * Human-readable printed label (e.g. "Page 3" or "i" for roman numerals).
-   * @provisional — backend currently returns only norm_text as plain text.
-   */
   printed_label?: string;
   norm_text: string;
   is_readable?: boolean;
@@ -223,7 +178,6 @@ export interface DeletionResponse {
 
 // ── HTTP Error envelope ───────────────────────────────────────────────────────
 
-/** FastAPI's default HTTPException detail — @provisional (not fully specified) */
 export interface ApiErrorEnvelope {
   detail: string | unknown;
 }

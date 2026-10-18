@@ -6,9 +6,9 @@
  */
 
 import React, { createContext, useCallback, useContext, useState } from 'react';
-import type { DocumentCard, RenderedAnswer, SourcePageResponse, ReviewResponse } from '../api/contracts';
+import type { AskResponse, DocumentCard, SourcePageResponse, ReviewResponse } from '../api/contracts';
 
-export type WorkspaceView = 'overview' | 'ask' | 'review' | 'source';
+export type WorkspaceView = 'overview' | 'ask' | 'review' | 'summary' | 'source';
 
 interface SourceViewState {
   documentId: string;
@@ -33,9 +33,9 @@ interface AppStateContextValue {
   workspaceView: WorkspaceView;
   setWorkspaceView: (view: WorkspaceView) => void;
 
-  /** Last rendered answer for the active document */
-  currentAnswer: RenderedAnswer | null;
-  setCurrentAnswer: (answer: RenderedAnswer | null) => void;
+  /** Last rendered answer for the active document (single-pass RAG response) */
+  currentAnswer: AskResponse | null;
+  setCurrentAnswer: (answer: AskResponse | null) => void;
 
   /** Current question text (for the ask interface) */
   currentQuestion: string;
@@ -67,7 +67,7 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
   const [activeDocument, setActiveDocumentRaw] = useState<DocumentCard | null>(null);
   const [documents, setDocuments] = useState<DocumentCard[]>([]);
   const [workspaceView, setWorkspaceView] = useState<WorkspaceView>('overview');
-  const [currentAnswer, setCurrentAnswer] = useState<RenderedAnswer | null>(null);
+  const [currentAnswer, setCurrentAnswer] = useState<AskResponse | null>(null);
   const [currentQuestion, setCurrentQuestion] = useState('');
   const [currentReview, setCurrentReview] = useState<ReviewResponse | null>(null);
   const [sourceView, setSourceView] = useState<SourceViewState | null>(null);
@@ -107,7 +107,6 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     setCurrentQuestion('');
     setCurrentReview(null);
     setSourceView(null);
-    // Remove cached pages for this document
     for (const key of Array.from(pageCache.keys())) {
       if (key.startsWith(`${documentId}:`)) {
         pageCache.delete(key);
