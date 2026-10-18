@@ -79,91 +79,117 @@ def _rss_watchdog(max_rss_bytes: int, interval: float = 1.0) -> None:
 # ─── PDF extraction ───────────────────────────────────────────────────────────
 
 def _extract_pdf(raw: bytes, max_pages: int, max_text_bytes: int) -> dict[str, Any]:
-    """Extract text from a PDF using pypdfium2."""
-    import pypdfium2 as pdfium  # type: ignore[import]
+    """Extract text from a PDF using pypdfium2 with graceful error handling and fallbacks."""
+    try:
+        import pypdfium2 as pdfium  # type: ignore[import]
+    except ImportError as exc:
+        return {
+            "error": (
+                f"PDF parsing engine (pypdfium2) is not installed: {exc}. "
+                "Please upload a plain-text (.txt) file or install pypdfium2 in the environment."
+            )
+        }
 
     try:
         doc = pdfium.PdfDocument(raw)
     except Exception as exc:
-        return {"error": f"pypdfium2 failed to open document: {exc}"}
+        return {"error": f"Failed to parse PDF with pypdfium2: {exc}"}
 
-    page_count = len(doc)
-    warnings: list[str] = []
+    try:
+        page_count = len(doc)
+        warnings: list[str] = []
 
-    if page_count == 0:
-        return {"error": "PDF has no pages."}
-    if page_count > max_pages:
-        return {
-            "error": (
-                f"PDF has {page_count} pages, which exceeds the maximum of {max_pages}. "
-                "Split the document and upload it in parts."
-            )
-        }
-
-    pages: list[dict[str, Any]] = []
-    total_text_bytes = 0
-
-    for page_num in range(page_count):
-        page = doc[page_num]
-        text_page = page.get_textpage()
-
-        # Extract full page text.
-        raw_text = text_page.get_text_range()
-
-        # Check for hidden text (heuristic: bounding boxes with zero height/width).
-        hidden_text_warning: str | None = None
-        try:
-            char_count = text_page.count_chars()
-            loose_chars = 0
-            for i in range(min(char_count, 500)):  # sample first 500 chars
-                rect = text_page.get_charbox(i, loose=True)
-                if rect and (rect[2] - rect[0] < 0.5 or rect[3] - rect[1] < 0.5):
-                    loose_chars += 1
-            if loose_chars > 0.3 * min(char_count, 500):
-                hidden_text_warning = (
-                    "Possible hidden text detected on this page "
-                    "(many characters with near-zero bounding boxes). "
-                    "Content may be incomplete."
+        if page_count == 0:
+            return {"error": "PDF has no pages."}
+        if page_count > max_pages:
+            return {
+                "error": (
+                    f"PDF has {page_count} pages, which exceeds the maximum of {max_pages}. "
+                    "Split the document and upload it in parts."
                 )
-        except Exception:
-            pass
+            }
 
-        page_warnings: list[str] = []
-        if hidden_text_warning:
-            page_warnings.append(hidden_text_warning)
+        pages: list[dict[str, Any]] = []
+        total_text_bytes = 0
 
-        # Accumulate text-size cap.
-        total_text_bytes += len(raw_text.encode("utf-8"))
-        if total_text_bytes > max_text_bytes:
-            warnings.append(
-                f"Text extraction stopped at page {page_num + 1}: "
-                f"total extracted text exceeds {max_text_bytes:,} bytes."
-            )
-            # Truncate this page and stop.
+        for page_num in range(page_count):
+            try:
+                page = doc[page_num]
+                text_page = page.get_textpage()
+                raw_text = text_page.get_text_range()
+            except Exception as page_err:
+                warnings.append(f"Page {page_num + 1} extraction failed: {page_err}")
+                pages.append({
+                    "page_num": page_num + 1,
+                    "text": "",
+                    "warnings": [f"Page extraction error: {page_err}"],
+                })
+                continue
+
+            # Check for hidden text (heuristic: bounding boxes with zero height/width).
+            hidden_text_warning: str | None = None
+            try:
+                char_count = text_page.count_chars()
+                loose_chars = 0
+                for i in range(min(char_count, 500)):  # sample first 500 chars
+                    rect = text_page.get_charbox(i, loose=True)
+                    if rect and (rect[2] - rect[0] < 0.5 or rect[3] - rect[1] < 0.5):
+                        loose_chars += 1
+                if loose_chars > 0.3 * min(char_count, 500):
+                    hidden_text_warning = (
+                        "Possible hidden text detected on this page "
+                        "(many characters with near-zero bounding boxes). "
+                        "Content may be incomplete."
+                    )
+            except Exception:
+                pass
+
+            page_warnings: list[str] = []
+            if hidden_text_warning:
+                page_warnings.append(hidden_text_warning)
+
+            # Accumulate text-size cap.
+            total_text_bytes += len(raw_text.encode("utf-8"))
+            if total_text_bytes > max_text_bytes:
+                warnings.append(
+                    f"Text extraction stopped at page {page_num + 1}: "
+                    f"total extracted text exceeds {max_text_bytes:,} bytes."
+                )
+                pages.append({
+                    "page_num": page_num + 1,
+                    "text": "",
+                    "warnings": ["Text truncated: total text-size cap reached."],
+                })
+                try:
+                    text_page.close()
+                    page.close()
+                except Exception:
+                    pass
+                break
+
             pages.append({
                 "page_num": page_num + 1,
-                "text": "",
-                "warnings": ["Text truncated: total text-size cap reached."],
+                "text": raw_text,
+                "warnings": page_warnings,
             })
-            break
 
-        pages.append({
-            "page_num": page_num + 1,
-            "text": raw_text,
-            "warnings": page_warnings,
-        })
+            try:
+                text_page.close()
+                page.close()
+            except Exception:
+                pass
 
-        text_page.close()
-        page.close()
-
-    doc.close()
-
-    return {
-        "file_type": "pdf",
-        "page_count": page_count,
-        "pages": pages,
-        "warnings": warnings,
-    }
+        return {
+            "file_type": "pdf",
+            "page_count": page_count,
+            "pages": pages,
+            "warnings": warnings,
+        }
+    finally:
+        try:
+            doc.close()
+        except Exception:
+            pass
 
 
 # ─── TXT extraction (virtual pages) ──────────────────────────────────────────
@@ -266,12 +292,15 @@ def main() -> None:
         )
         t.start()
 
-    if file_type == "pdf":
-        result = _extract_pdf(raw, max_pages, max_text_bytes)
-    elif file_type == "txt":
-        result = _extract_txt(raw, virtual_page_chars, max_pages, max_text_bytes)
-    else:
-        result = {"error": f"Unknown file type: {file_type!r}"}
+    try:
+        if file_type == "pdf":
+            result = _extract_pdf(raw, max_pages, max_text_bytes)
+        elif file_type == "txt":
+            result = _extract_txt(raw, virtual_page_chars, max_pages, max_text_bytes)
+        else:
+            result = {"error": f"Unknown file type: {file_type!r}"}
+    except Exception as exc:
+        result = {"error": f"Parser execution failed: {exc}"}
 
     result["missing_limits"] = missing_limits
 

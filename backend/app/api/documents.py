@@ -51,6 +51,12 @@ class DeleteResponse(BaseModel):
     response_model=UploadResponse,
     status_code=status.HTTP_201_CREATED,
 )
+@router.post(
+    "/documents/",
+    response_model=UploadResponse,
+    status_code=status.HTTP_201_CREATED,
+    include_in_schema=False,
+)
 async def upload_document(
     _token: AuthDep,
     file: UploadFile = File(...),
@@ -88,6 +94,7 @@ async def upload_document(
     try:
         result = await ingest_document(raw, filename_hint)
     except ValueError as exc:
+        logger.error("Document upload failed: %s", exc)
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail=str(exc),
@@ -103,6 +110,7 @@ async def upload_document(
 
 
 @router.get("/documents", response_model=list[DocumentCard])
+@router.get("/documents/", response_model=list[DocumentCard], include_in_schema=False)
 async def list_documents(_token: AuthDep) -> list[DocumentCard]:
     """Return a list of locally stored document cards (display metadata only)."""
     from backend.app.store.documents import list_all_documents

@@ -30,8 +30,8 @@ class Settings(BaseSettings):
     # Per-launch bearer token, generated at startup — never set in env.
     # The env var is here only so tests can inject a known value.
     launch_token: str = Field(default_factory=lambda: secrets.token_urlsafe(32))
-    # One-time launch code lives for this many seconds.
-    launch_code_ttl_seconds: int = 60
+    # One-time launch code lives for this many seconds (10 minutes for demo recording).
+    launch_code_ttl_seconds: int = 600
 
     # ── Storage ───────────────────────────────────────────────────────────────
     data_dir: Path = Path("data/docs")

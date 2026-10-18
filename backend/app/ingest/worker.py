@@ -20,6 +20,7 @@ import base64
 import hashlib
 import json
 import logging
+import os
 import secrets
 import subprocess
 import sys
@@ -58,7 +59,7 @@ async def ingest_document(raw: bytes, filename_hint: str) -> IngestResult:
 
     # ── 1. Upload validation ───────────────────────────────────────────────────
     try:
-        file_type = validate_upload(raw, settings.max_upload_bytes)
+        file_type = validate_upload(raw, settings.max_upload_bytes, filename_hint=filename_hint)
     except UploadValidationError:
         raise
 
@@ -232,6 +233,11 @@ async def _run_parser(
     input_bytes = json.dumps(envelope).encode()
 
     try:
+        env = dict(os.environ)
+        project_root = str(Path(__file__).resolve().parent.parent.parent.parent)
+        current_pythonpath = env.get("PYTHONPATH", "")
+        env["PYTHONPATH"] = f"{project_root}{os.pathsep}{current_pythonpath}" if current_pythonpath else project_root
+
         proc = await asyncio.create_subprocess_exec(
             sys.executable,
             "-m",
@@ -239,6 +245,7 @@ async def _run_parser(
             stdin=asyncio.subprocess.PIPE,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
+            env=env,
         )
         try:
             stdout, stderr = await asyncio.wait_for(
@@ -259,8 +266,19 @@ async def _run_parser(
         raise ValueError("Parser output exceeded the maximum allowed size.")
 
     if proc.returncode != 0:
-        # Log stderr at debug level only (may contain internal info).
-        logger.debug("Parser process stderr: %s", stderr.decode(errors="replace")[:512])
+        if stdout:
+            try:
+                parsed = json.loads(stdout)
+                if isinstance(parsed, dict) and "error" in parsed:
+                    raise ValueError(parsed["error"])
+            except json.JSONDecodeError:
+                pass
+
+        stderr_str = stderr.decode(errors="replace").strip()
+        logger.error("Parser subprocess failed with code %d. Stderr: %s", proc.returncode, stderr_str[:1024])
+        if stderr_str:
+            last_line = stderr_str.splitlines()[-1]
+            raise ValueError(f"Document parser error: {last_line}")
         raise ValueError(
             "Document parser exited with an error. "
             "The file may be malformed, encrypted, or unsupported."

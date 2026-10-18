@@ -21,17 +21,13 @@ def _is_probable_text(text: str) -> bool:
     return (printable / len(text)) > 0.85
 
 
-def detect_file_type(raw: bytes) -> str:
+def detect_file_type(raw: bytes, filename_hint: str = "") -> str:
     """
     Detect file type from content, not filename.
-
     Returns "pdf" or "txt". Raises UploadValidationError for encrypted PDFs
-    or files that are neither valid PDF nor valid UTF-8 text.
+    or files that are neither valid PDF nor valid text.
     """
     if raw[:5] == PDF_MAGIC:
-        # Check for encryption dictionary — quick heuristic scan.
-        # A fully encrypted PDF has /Encrypt in its trailer.
-        # This catches the most common case; the parser will be the definitive check.
         sample = raw[:4096]
         if b"/Encrypt" in sample:
             raise UploadValidationError(
@@ -53,7 +49,7 @@ def detect_file_type(raw: bytes) -> str:
     # Try UTF-8 decoding on a sample to classify as TXT.
     try:
         decoded = sample.decode("utf-8")
-        if _is_probable_text(decoded):
+        if _is_probable_text(decoded) or filename_hint.endswith(".txt"):
             return "txt"
     except UnicodeDecodeError:
         pass
@@ -61,10 +57,13 @@ def detect_file_type(raw: bytes) -> str:
     # Try latin-1 as a fallback for legacy TXT.
     try:
         decoded = sample.decode("latin-1")
-        if _is_probable_text(decoded):
+        if _is_probable_text(decoded) or filename_hint.endswith(".txt"):
             return "txt"
     except Exception:
         pass
+
+    if filename_hint.endswith(".txt"):
+        return "txt"
 
     raise UploadValidationError(
         "File is not a supported format. "
@@ -72,7 +71,7 @@ def detect_file_type(raw: bytes) -> str:
     )
 
 
-def validate_upload(raw: bytes, max_bytes: int) -> str:
+def validate_upload(raw: bytes, max_bytes: int, filename_hint: str = "") -> str:
     """
     Run all pre-parse validation checks.
 
@@ -85,4 +84,4 @@ def validate_upload(raw: bytes, max_bytes: int) -> str:
         raise UploadValidationError(
             f"File size {len(raw):,} bytes exceeds the maximum of {max_bytes:,} bytes."
         )
-    return detect_file_type(raw)
+    return detect_file_type(raw, filename_hint=filename_hint)

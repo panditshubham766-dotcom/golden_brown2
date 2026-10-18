@@ -43,15 +43,15 @@ class TokenStore:
 
     def exchange_code(self, code: str) -> str | None:
         """
-        Exchange a one-time code for the bearer token.
+        Exchange a launch code for the bearer token.
 
-        Returns the bearer token on success, or None if the code is invalid,
-        expired, or already used.
+        Returns the bearer token on success, or None if the code is invalid
+        or expired. Allows re-exchanging during the code TTL to survive page reloads.
         """
         now = time.monotonic()
         with self._lock:
             otc = self._codes.get(code)
-            if otc is None or otc.used or otc.expires_at < now:
+            if otc is None or otc.expires_at < now:
                 return None
             otc.used = True
         return self._token

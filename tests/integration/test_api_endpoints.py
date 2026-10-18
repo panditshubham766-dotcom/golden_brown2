@@ -131,3 +131,69 @@ def test_api_full_lifecycle(tmp_path: Path):
         # Verify document is gone
         get_gone = client.get(f"/api/documents/{doc_id}/pages/1", headers=headers)
         assert get_gone.status_code == 404
+
+
+def test_upload_pdf_lifecycle():
+    """Verify that the upload endpoint correctly accepts and processes PDF documents."""
+    import pypdfium2 as pdfium
+    app = create_app()
+    client = TestClient(app)
+
+    code = main_mod.token_store.issue_launch_code()
+    session_res = client.post("/api/session", json={"code": code})
+    assert session_res.status_code == 200
+    token = session_res.json()["token"]
+    headers = {"Authorization": f"Bearer {token}"}
+
+    # Create a small valid PDF in memory
+    doc = pdfium.PdfDocument.new()
+    doc.new_page(width=200, height=200)
+    bio = io.BytesIO()
+    doc.save(bio)
+    pdf_bytes = bio.getvalue()
+
+    files = {"file": ("test_doc.pdf", io.BytesIO(pdf_bytes), "application/pdf")}
+    upload_res = client.post("/api/documents", headers=headers, files=files)
+    assert upload_res.status_code == 201, upload_res.text
+    data = upload_res.json()
+    assert "document_id" in data
+    assert data["page_count"] == 1
+    doc_id = data["document_id"]
+
+    # Clean up
+    del_res = client.delete(f"/api/documents/{doc_id}", headers=headers)
+    assert del_res.status_code == 200
+
+
+def test_upload_raw_txt_file():
+    """Verify that raw .txt files are accepted and parsed into virtual pages."""
+    app = create_app()
+    client = TestClient(app)
+
+    code = main_mod.token_store.issue_launch_code()
+    session_res = client.post("/api/session", json={"code": code})
+    assert session_res.status_code == 200
+    token = session_res.json()["token"]
+    headers = {"Authorization": f"Bearer {token}"}
+
+    raw_text = (
+        "CONFIDENTIALITY AND NON-DISCLOSURE AGREEMENT\n\n"
+        "This Non-Disclosure Agreement is entered into on January 1, 2025.\n\n"
+        "1. DEFINITION OF CONFIDENTIAL INFORMATION\n\n"
+        "All proprietary technical and business information disclosed by either party.\n\n"
+        "2. GOVERNING LAW\n\n"
+        "This agreement shall be governed by the laws of India.\n"
+    ).encode("utf-8")
+
+    files = {"file": ("simple_nda.txt", io.BytesIO(raw_text), "text/plain")}
+    upload_res = client.post("/api/documents", headers=headers, files=files)
+    assert upload_res.status_code == 201, upload_res.text
+    data = upload_res.json()
+    assert "document_id" in data
+    assert data["page_count"] >= 1
+    assert data["status"] in ("ready", "partial")
+
+    doc_id = data["document_id"]
+    del_res = client.delete(f"/api/documents/{doc_id}", headers=headers)
+    assert del_res.status_code == 200
+
