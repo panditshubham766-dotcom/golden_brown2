@@ -2,6 +2,19 @@
 # Aid to retrieval - not a legal judgment.
 version: 1
 topics:
+  parties:
+    label: "Parties & Entities"
+    synonyms:
+      - "parties"
+      - "party"
+      - "licensor"
+      - "licensee"
+      - "landlord"
+      - "tenant"
+      - "between"
+      - "lessor"
+      - "lessee"
+      - "entities"
   notice:
     label: "Notice & Termination"
     synonyms:

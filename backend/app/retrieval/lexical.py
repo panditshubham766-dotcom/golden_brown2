@@ -238,13 +238,21 @@ def search_lexical(
             if escaped_topic:
                 search_terms.append(escaped_topic)
 
-    # 2. Add user query terms (filter out common conversational question stopwords)
+    # 2. Add user query terms (filter out common conversational question stopwords and prompt wrappers)
     _STOPWORDS = frozenset([
         "what", "is", "the", "are", "was", "were", "when", "where", "how", "why", "who",
         "does", "do", "did", "can", "could", "will", "would", "shall", "should", "a", "an",
         "of", "to", "in", "on", "for", "at", "by", "with", "from", "about", "tell", "me", "please",
+        "highlight", "parts", "part", "contract", "related", "any", "this", "if"
     ])
     if query.strip():
+        # Prioritize quoted phrases (e.g. 'Parties', 'Governing Law', 'Notice Period to Terminate')
+        quoted = re.findall(r"['\"]([^'\"]+)['\"]", query)
+        for qphrase in quoted:
+            escaped_qphrase = _escape_fts5_term(qphrase)
+            if escaped_qphrase and escaped_qphrase not in search_terms:
+                search_terms.insert(0, escaped_qphrase)
+
         # First add clean content tokens individually
         clean_words = [
             w for w in re.findall(r"[a-zA-Z0-9_-]+", query)
@@ -253,10 +261,11 @@ def search_lexical(
         for w in clean_words:
             search_terms.append(f'"{w}"')
 
-        # Also add the full phrase if short
-        escaped_query = _escape_fts5_term(query)
-        if escaped_query and escaped_query not in search_terms:
-            search_terms.append(escaped_query)
+        # Also add the full phrase if short (<= 8 tokens)
+        if len(clean_words) <= 8:
+            escaped_query = _escape_fts5_term(" ".join(clean_words))
+            if escaped_query and escaped_query not in search_terms:
+                search_terms.append(escaped_query)
 
     if not search_terms:
         return []

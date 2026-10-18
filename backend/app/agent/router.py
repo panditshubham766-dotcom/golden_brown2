@@ -34,7 +34,7 @@ class RouteDecision:
 
 # Prohibited verdict / outcome question patterns that require legal conclusion or external law
 _LEGAL_VERDICT_PATTERNS = [
-    re.compile(r"\b(?:is\s+this|is\s+the|is\s+it)\s*(?:agreement|clause|term|document|provision|condition)?\s*(?:legally\s+|completely\s+)?(?:enforceable|valid|binding|legal|lawful|void|fair|unfair)\b", re.IGNORECASE),
+    re.compile(r"\b(?:is\s+this|is\s+the|is\s+it)\s*(?:[a-zA-Z\s]{0,25})?\s*(?:legally\s+|completely\s+)?(?:enforceable|valid|binding|legal|lawful|void|fair|unfair)\b", re.IGNORECASE),
     re.compile(r"\b(?:will\s+this|will\s+it)\s+(?:hold\s+up|stand)\s+(?:up\s+)?in\s+court\b", re.IGNORECASE),
     re.compile(r"\bcan\s+I\s+(?:sue|take\s+(?:[a-zA-Z\s]+)?to\s+court|take\s+legal\s+action|go\s+to\s+court)\b", re.IGNORECASE),
     re.compile(r"\b(?:can\s+(?:they|the\s+landlord|owner)\s+(?:throw\s+me\s+out|kick\s+me\s+out|evict\s+me)\s*(?:legally|without\s+court)?)\b", re.IGNORECASE),
@@ -133,9 +133,14 @@ def route_query(question: str) -> RouteDecision:
     # 6. Default to FACT_LOOKUP with optional detected topic
     lower_q = clean_q.lower()
     detected_topic = None
-    for t_key in ("rent", "deposit", "notice", "maintenance", "term", "dispute"):
+    for t_key in ("parties", "party", "rent", "deposit", "notice", "maintenance", "term", "dispute", "governing law", "law"):
         if re.search(r"\b" + t_key + r"\b", lower_q):
-            detected_topic = "disputes" if t_key == "dispute" else t_key
+            if t_key in ("dispute", "governing law", "law"):
+                detected_topic = "disputes"
+            elif t_key in ("parties", "party"):
+                detected_topic = "parties"
+            else:
+                detected_topic = t_key
             break
 
     return RouteDecision(

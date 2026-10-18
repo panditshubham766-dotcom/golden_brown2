@@ -48,17 +48,18 @@ async def ask_document(
         )
 
     con = open_doc_db(db_path)
-
-    # Attempt to initialize Ollama provider (falls back to extractive if unavailable)
-    provider = None
     try:
-        provider = OllamaNativeProvider(base_url=settings.ollama_base_url, model=settings.model_tag)
-    except ErrorLocalModelUnavailable as exc:
-        logger.info("Local Ollama model unavailable (%s); using extractive fallback.", exc)
-    except Exception as exc:
-        logger.warning("Could not reach Ollama: %s", exc)
+        # Attempt to initialize Ollama provider (falls back to extractive if unavailable)
+        provider = None
+        try:
+            provider = OllamaNativeProvider(base_url=settings.ollama_base_url, model=settings.model_tag)
+        except ErrorLocalModelUnavailable as exc:
+            logger.info("Local Ollama model unavailable (%s); using extractive fallback.", exc)
+        except Exception as exc:
+            logger.warning("Could not reach Ollama: %s", exc)
 
-    runtime = BoundedRuntime(con=con, provider=provider)
-    result = runtime.run(body.question)
-
-    return result
+        runtime = BoundedRuntime(con=con, provider=provider)
+        result = runtime.run(body.question)
+        return result
+    finally:
+        con.close()

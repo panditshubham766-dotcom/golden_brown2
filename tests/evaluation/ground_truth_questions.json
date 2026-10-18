@@ -1,93 +1,166 @@
 [
   {
-    "id": "GT-RENT-01",
-    "question": "What is the monthly rent amount and when is it due?",
-    "topic": "rent",
+    "question_id": "CUAD_001_PARTIES",
+    "id": "CUAD_001_PARTIES",
+    "category": "Parties",
+    "user_query": "Highlight the parts (if any) of this contract related to 'Parties' (the entities entering the agreement).",
+    "question": "Highlight the parts (if any) of this contract related to 'Parties' (the entities entering the agreement).",
+    "topic": "parties",
     "expected_status": "ANSWERED",
-    "expected_keywords": ["25,000", "5th day"]
+    "expected_verbatim_snippets": [
+      "Ramesh Kumar Sharma, residing at 42 MG Road, Mumbai 400001, Maharashtra, India (\"Licensor / Landlord\");",
+      "Priya Agarwal, residing at 15 Park Street, Pune 411001, Maharashtra, India (\"Licensee / Tenant\")."
+    ],
+    "expected_keywords": [
+      "Ramesh Kumar Sharma",
+      "Priya Agarwal",
+      "Licensor",
+      "Licensee"
+    ]
   },
   {
-    "id": "GT-DEP-01",
-    "question": "How much is the security deposit and when is it refunded?",
-    "topic": "deposit",
+    "question_id": "CUAD_002_GOV_LAW",
+    "id": "CUAD_002_GOV_LAW",
+    "category": "Governing Law",
+    "user_query": "Highlight the parts (if any) of this contract related to 'Governing Law' (jurisdiction governing interpretation).",
+    "question": "Highlight the parts (if any) of this contract related to 'Governing Law' (jurisdiction governing interpretation).",
+    "topic": "disputes",
     "expected_status": "ANSWERED",
-    "expected_keywords": ["75,000", "30", "days"]
+    "expected_verbatim_snippets": [
+      "11.1 This Agreement shall be governed by the laws of Maharashtra, India.",
+      "11.3 The venue of arbitration shall be Mumbai, Maharashtra."
+    ],
+    "expected_keywords": [
+      "Maharashtra",
+      "India",
+      "governed by the laws",
+      "arbitration"
+    ]
   },
   {
-    "id": "GT-NOTICE-01",
-    "question": "What is the notice period required to terminate the agreement?",
+    "question_id": "CUAD_003_NOTICE",
+    "id": "CUAD_003_NOTICE",
+    "category": "Notice Period to Terminate",
+    "user_query": "Highlight the parts (if any) of this contract related to 'Notice Period to Terminate'.",
+    "question": "Highlight the parts (if any) of this contract related to 'Notice Period to Terminate'.",
     "topic": "notice",
     "expected_status": "ANSWERED",
-    "expected_keywords": ["60", "days"]
+    "expected_verbatim_snippets": [
+      "9.1 Either party may terminate this Agreement by giving 60 (sixty) days' written notice to the other party."
+    ],
+    "expected_keywords": [
+      "60 (sixty) days'",
+      "written notice",
+      "terminate"
+    ]
   },
   {
-    "id": "GT-LOCKIN-01",
-    "question": "How long is the lock-in period and what is the penalty for early termination?",
+    "question_id": "CUAD_004_DEPOSIT_RENT",
+    "id": "CUAD_004_DEPOSIT_RENT",
+    "category": "Security Deposit / Payment Obligations",
+    "user_query": "Highlight the parts (if any) of this contract related to 'Security Deposit' or payment obligations.",
+    "question": "Highlight the parts (if any) of this contract related to 'Security Deposit' or payment obligations.",
+    "topic": "deposit",
+    "expected_status": "ANSWERED",
+    "expected_verbatim_snippets": [
+      "3.1 The Licensee shall pay to the Licensor a monthly licence fee of Rs. 25,000/- (Rupees Twenty-Five Thousand only), payable on or before the 5th day of each calendar month.",
+      "4.1 The Licensee has paid to the Licensor a refundable security deposit of Rs. 75,000/- (Rupees Seventy-Five Thousand only) on the date of execution of this Agreement.",
+      "4.2 The security deposit shall be refunded to the Licensee within 30 (thirty) days of the Licensee vacating the Premises, after deducting any outstanding dues, unpaid licence fee, or damage caused by the Licensee beyond normal wear and tear."
+    ],
+    "expected_keywords": [
+      "25,000",
+      "75,000",
+      "security deposit",
+      "licence fee"
+    ]
+  },
+  {
+    "question_id": "CUAD_005_TERM",
+    "id": "CUAD_005_TERM",
+    "category": "Expiration Date / Agreement Term",
+    "user_query": "Highlight the parts (if any) of this contract related to 'Expiration Date' or agreement duration.",
+    "question": "Highlight the parts (if any) of this contract related to 'Expiration Date' or agreement duration.",
     "topic": "term",
     "expected_status": "ANSWERED",
-    "expected_keywords": ["6", "months", "forfeit"]
+    "expected_verbatim_snippets": [
+      "2.1 This Agreement shall commence on 1st January 2025 and shall expire on 30th November 2025, a period of eleven (11) months (\"Term\")."
+    ],
+    "expected_keywords": [
+      "1st January 2025",
+      "30th November 2025",
+      "eleven (11) months"
+    ]
   },
   {
-    "id": "GT-MAINT-01",
-    "question": "Who is responsible for society maintenance charges?",
-    "topic": "maintenance",
-    "expected_status": "ANSWERED",
-    "expected_keywords": ["Licensor", "society maintenance"]
-  },
-  {
-    "id": "GT-REPAIR-01",
-    "question": "Who pays for minor repairs and what is the maximum amount?",
-    "topic": "maintenance",
-    "expected_status": "ANSWERED",
-    "expected_keywords": ["1,000", "Licensee"]
-  },
-  {
-    "id": "GT-ACCESS-01",
-    "question": "How much advance notice must the landlord provide before entering the premises?",
-    "topic": "access",
-    "expected_status": "ANSWERED",
-    "expected_keywords": ["48", "hours"]
-  },
-  {
-    "id": "GT-SUBLET-01",
-    "question": "Can the tenant sublet or assign the property to a third party?",
+    "question_id": "CUAD_006_ANTI_ASSIGNMENT",
+    "id": "CUAD_006_ANTI_ASSIGNMENT",
+    "category": "Anti-Assignment / Subletting",
+    "user_query": "Highlight the parts (if any) of this contract related to 'Anti-Assignment' or subletting restrictions.",
+    "question": "Highlight the parts (if any) of this contract related to 'Anti-Assignment' or subletting restrictions.",
     "topic": "subletting",
     "expected_status": "ANSWERED",
-    "expected_keywords": ["shall not sublet", "written consent"]
+    "expected_verbatim_snippets": [
+      "6.3 The Licensee shall not sublet, assign or part with possession of the Premises or any part thereof to any third party without the prior written consent of the Licensor."
+    ],
+    "expected_keywords": [
+      "sublet",
+      "assign",
+      "written consent"
+    ]
   },
   {
-    "id": "GT-SILENCE-01",
-    "question": "Are pets allowed in the apartment?",
-    "topic": "pets",
+    "question_id": "CUAD_007_AUDIT_RIGHTS",
+    "id": "CUAD_007_AUDIT_RIGHTS",
+    "category": "Audit Rights / Inspection",
+    "user_query": "Highlight the parts (if any) of this contract related to 'Audit Rights' or premises access inspection.",
+    "question": "Highlight the parts (if any) of this contract related to 'Audit Rights' or premises access inspection.",
+    "topic": "access",
+    "expected_status": "ANSWERED",
+    "expected_verbatim_snippets": [
+      "8.1 The Licensor or their authorised representative shall have the right to inspect the Premises after giving 48 (forty-eight) hours prior written notice to the Licensee."
+    ],
+    "expected_keywords": [
+      "inspect",
+      "48 (forty-eight) hours",
+      "prior written notice"
+    ]
+  },
+  {
+    "question_id": "CUAD_008_NON_COMPETE",
+    "id": "CUAD_008_NON_COMPETE",
+    "category": "Non-Compete / Exclusivity",
+    "user_query": "Highlight the parts (if any) of this contract related to 'Non-Compete' or competitive restrictions.",
+    "question": "Highlight the parts (if any) of this contract related to 'Non-Compete' or competitive restrictions.",
+    "topic": "competition",
     "expected_status": "NOT_LOCATED",
+    "expected_verbatim_snippets": [],
     "expected_keywords": []
   },
   {
-    "id": "GT-VERDICT-01",
+    "question_id": "CUAD_009_LEGAL_VERDICT",
+    "id": "CUAD_009_LEGAL_VERDICT",
+    "category": "Legal Enforceability Determination",
+    "user_query": "Is this agreement legally valid and enforceable in court?",
     "question": "Is this agreement legally valid and enforceable in court?",
     "topic": "disputes",
     "expected_status": "LEGAL_LIMIT",
-    "expected_keywords": ["professional", "legal"]
+    "expected_verbatim_snippets": [],
+    "expected_keywords": [
+      "professional",
+      "legal"
+    ]
   },
   {
-    "id": "GT-SUE-01",
-    "question": "Can I sue the landlord for damages if they fail to refund the deposit?",
-    "topic": "disputes",
-    "expected_status": "LEGAL_LIMIT",
-    "expected_keywords": ["professional", "legal"]
-  },
-  {
-    "id": "GT-TERM-01",
+    "question_id": "CUAD_010_TERM_GLOSSARY",
+    "id": "CUAD_010_TERM_GLOSSARY",
+    "category": "Term Definition",
+    "user_query": "What does the term 'security deposit' mean?",
     "question": "What does the term 'security deposit' mean?",
     "topic": "deposit",
     "expected_status": "ANSWERED",
-    "expected_keywords": ["definition"]
-  },
-  {
-    "id": "GT-OUTOFSCOPE-01",
-    "question": "What is the capital city of France?",
-    "topic": "other",
-    "expected_status": "OUT_OF_SCOPE",
-    "expected_keywords": []
+    "expected_verbatim_snippets": [],
+    "expected_keywords": [
+      "definition"
+    ]
   }
 ]
