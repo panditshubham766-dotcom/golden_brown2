@@ -24,18 +24,12 @@ _ABBREVS = frozenset([
     "mr", "mrs", "ms", "dr", "prof", "sr", "jr", "vs", "etc",
     "e.g", "i.e", "no", "rs", "inr", "pg", "pp", "vol", "fig",
     "jan", "feb", "mar", "apr", "jun", "jul", "aug", "sep", "oct", "nov", "dec",
-    "inc", "ltd", "llp", "pvt", "co",
+    "inc", "ltd", "llp", "pvt", "co", "cl", "sec", "art",
 ])
 
-# Pattern: end of sentence — period/! or ? followed by space+capital.
-# Protected by negative lookbehind for known abbreviations.
-_SENT_END_RE = re.compile(
-    r"(?<!\b(?:" + "|".join(re.escape(a) for a in sorted(_ABBREVS)) + r"))"
-    r"(?<!\d)"       # don't split on "1. Introduction" numeric labels
-    r"[.!?]"
-    r"(?=['\"]?\s+[A-Z\d([])",
-    re.IGNORECASE,
-)
+# Candidate end of sentence — period/! or ? followed by space+capital/number/bracket.
+_PUNCT_SPLIT_RE = re.compile(r"([.!?])(?=['\"]?\s+[A-Z\d([])")
+_PRECEDING_WORD_RE = re.compile(r"(\b[a-zA-Z.]+)\Z")
 
 # Heading / clause patterns.
 _HEADING_RE = re.compile(
@@ -77,7 +71,20 @@ def _split_sentences(text: str, start_offset: int) -> list[tuple[int, int]]:
     spans: list[tuple[int, int]] = []
     last = 0
 
-    for m in _SENT_END_RE.finditer(text):
+    for m in _PUNCT_SPLIT_RE.finditer(text):
+        punct_idx = m.start(1)
+        # Don't split if preceded by digit (e.g. "1." or "3.14")
+        if punct_idx > 0 and text[punct_idx - 1].isdigit():
+            continue
+
+        # Check if preceding word is an abbreviation
+        prefix = text[last:punct_idx]
+        word_match = _PRECEDING_WORD_RE.search(prefix)
+        if word_match:
+            word = word_match.group(1).lower().rstrip(".")
+            if word in _ABBREVS or f"{word}." in _ABBREVS:
+                continue
+
         end = m.end()
         segment = text[last:end].strip()
         if segment:
@@ -87,7 +94,7 @@ def _split_sentences(text: str, start_offset: int) -> list[tuple[int, int]]:
     # Remainder.
     remainder = text[last:].strip()
     if remainder:
-        spans.append((start_offset + last, start_offset + last + len(text) - last))
+        spans.append((start_offset + last, start_offset + len(text)))
 
     # Character-cap fallback: split any span that's too long.
     final: list[tuple[int, int]] = []

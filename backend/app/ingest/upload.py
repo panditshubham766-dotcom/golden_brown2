@@ -13,6 +13,14 @@ class UploadValidationError(ValueError):
     """Raised when an uploaded file fails validation before parsing."""
 
 
+def _is_probable_text(text: str) -> bool:
+    """Check if decoded string is plausible text rather than binary data."""
+    if not text:
+        return True
+    printable = sum(1 for c in text if c.isprintable() or c in "\n\r\t")
+    return (printable / len(text)) > 0.85
+
+
 def detect_file_type(raw: bytes) -> str:
     """
     Detect file type from content, not filename.
@@ -33,19 +41,29 @@ def detect_file_type(raw: bytes) -> str:
             )
         return "pdf"
 
-    # Try UTF-8 decoding on a sample to classify as TXT.
     sample = raw[:8192]
+
+    # Binary files containing NUL bytes are rejected immediately
+    if b"\x00" in sample:
+        raise UploadValidationError(
+            "File is not a supported format. "
+            "Upload a PDF (starting with %PDF-) or a plain-text (.txt) file."
+        )
+
+    # Try UTF-8 decoding on a sample to classify as TXT.
     try:
-        sample.decode("utf-8")
-        return "txt"
+        decoded = sample.decode("utf-8")
+        if _is_probable_text(decoded):
+            return "txt"
     except UnicodeDecodeError:
         pass
 
     # Try latin-1 as a fallback for legacy TXT.
     try:
-        sample.decode("latin-1")
-        return "txt"
-    except UnicodeDecodeError:
+        decoded = sample.decode("latin-1")
+        if _is_probable_text(decoded):
+            return "txt"
+    except Exception:
         pass
 
     raise UploadValidationError(
