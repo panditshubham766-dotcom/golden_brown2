@@ -26,9 +26,13 @@ To preserve rock-solid system stability, rapid startup, and minimal hardware req
 - **Rationale:** Tesseract OCR requires heavy native binaries, complex C++ dependencies (`tesseract`, `leptonica`), and multi-gigabyte language trained data. Running OCR on consumer CPUs introduces prohibitive latency (often 10–30 seconds per page) and unpredictable memory spikes.
 - **Operational Impact:** Golden Brown processes digital PDFs containing embedded text streams and plain text agreements (`.txt`). Scanned or image-only PDF pages without text streams are detected by the quality gate (`assess_page`) and flagged as unreadable. In accordance with safety policies, unread pages prevent false negative assumptions and safely return `INSUFFICIENT_EVIDENCE` rather than attempting speculative OCR.
 
-### B. Phase 8: Hermes Agentic Framework
-- **Rationale:** As documented in `ADR-0010 (Hermes Not Built)`, multi-turn unconstrained agentic loops (such as Hermes or auto-reflection agents) introduce non-deterministic execution paths, risk of infinite tool-calling loops, context window exhaustion, and model hallucinations.
+### B. Phase 8: Hermes Continuous Agentic Loops
+- **Rationale:** As documented in `ADR-0010 (Hermes Not Built)`, multi-turn unconstrained agentic loops (such as Hermes, AutoGPT, or autonomous reflection loops) introduce non-deterministic execution paths, risk of infinite tool-calling loops, context window exhaustion, and model hallucinations.
 - **Operational Impact:** Replaced completely by the deterministic `BoundedRuntime` state machine. Maximum tool calls are hard-capped at 8, retrieval loops at 2, and Gemma calls at 4. The model never dictates execution flow, never selects which document database to open, and cannot forge sentence IDs.
+
+### C. Dense Vector Databases (FAISS / PyTorch Embeddings)
+- **Rationale:** Embedding models and vector databases (such as FAISS, ChromaDB, or PyTorch transformers) introduce heavy binary footprints (often >1.5 GB), substantial RAM consumption on consumer machines, slow initialization times, and semantic drift (retrieving text that sounds similar but lacks verbatim legal keyword precision).
+- **Operational Impact:** Omitted in favor of zero-overhead, highly accurate SQLite FTS5 (BM25) with domain-specific rental topic lexicons and deterministic cross-reference resolution. This guarantees instant query response times (avg 7.6ms), low memory utilization, and zero hallucinated citations.
 
 ---
 

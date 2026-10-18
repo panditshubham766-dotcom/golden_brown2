@@ -70,5 +70,7 @@ Thumbs.db
 # (uv.lock and pnpm-lock.yaml ARE committed — do not add them here)
 
 # ── Internal Documentation / Specs (Private) ──────────────────────────────────
-docs/
+docs/*
+!docs/reports/
+!docs/reports/**
 
