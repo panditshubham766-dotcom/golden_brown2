@@ -1,0 +1,74 @@
+# LexiGuard .gitignore
+
+# ── Python ────────────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+.venv/
+venv/
+env/
+.env
+.env.*
+pip-wheel-metadata/
+
+# ── Data (NEVER commit document data) ────────────────────────────────────────
+data/
+*.sqlite3
+*.sqlite3-wal
+*.sqlite3-shm
+
+# ── Secrets ───────────────────────────────────────────────────────────────────
+*.pem
+*.key
+*.p12
+*.pfx
+secrets.json
+.secrets/
+
+# ── Model weights (NEVER commit) ──────────────────────────────────────────────
+*.gguf
+*.bin
+*.ggml
+*.pt
+*.pth
+*.safetensors
+*.ckpt
+models/
+
+# ── Reports (results only, no raw loopback captures) ──────────────────────────
+reports/privacy/*/loopback_raw.pcap
+reports/privacy/*/raw_*.pcap
+
+# ── Frontend build ────────────────────────────────────────────────────────────
+frontend/dist/
+frontend/node_modules/
+node_modules/
+.pnpm-store/
+
+# ── Testing / coverage ────────────────────────────────────────────────────────
+.pytest_cache/
+.coverage
+coverage.xml
+htmlcov/
+*.log
+
+# ── IDE / OS ──────────────────────────────────────────────────────────────────
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# ── uv / pip lockfiles (commit these!) ───────────────────────────────────────
+# (uv.lock and pnpm-lock.yaml ARE committed — do not add them here)
+
+# ── Internal Documentation / Specs (Private) ──────────────────────────────────
+docs/
+

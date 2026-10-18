@@ -1,0 +1,133 @@
+SYNTHETIC RENTAL AGREEMENT — SIMPLE
+(Synthetic fixture for testing only. NOT a real agreement. Own work, CC0.)
+Target tests: T-ING-*, basic retrieval, silence tests.
+Known limitations: no conflicts, no ambiguity, straightforward structure.
+
+---
+
+LEAVE AND LICENCE AGREEMENT
+
+This Leave and Licence Agreement ("Agreement") is executed at Mumbai on the 1st day of January 2025.
+
+BETWEEN
+
+Ramesh Kumar Sharma, residing at 42 MG Road, Mumbai 400001, Maharashtra, India ("Licensor / Landlord");
+
+AND
+
+Priya Agarwal, residing at 15 Park Street, Pune 411001, Maharashtra, India ("Licensee / Tenant").
+
+---
+
+1. PROPERTY
+
+The Licensor hereby grants to the Licensee a licence to occupy the residential premises described as Flat No. 304, Sunrise Apartments, 7 Hill Road, Bandra West, Mumbai 400050 ("Premises") for residential purposes only.
+
+---
+
+2. TERM
+
+2.1 This Agreement shall commence on 1st January 2025 and shall expire on 30th November 2025, a period of eleven (11) months ("Term").
+
+2.2 This Agreement shall not be construed as a lease. It is a bare licence to use and occupy the Premises.
+
+---
+
+3. LICENCE FEE (RENT)
+
+3.1 The Licensee shall pay to the Licensor a monthly licence fee of Rs. 25,000/- (Rupees Twenty-Five Thousand only), payable on or before the 5th day of each calendar month.
+
+3.2 In the event of delay beyond 5 days, a late fee of Rs. 500/- per day shall be charged.
+
+3.3 The licence fee shall be paid by bank transfer to the Licensor's account as separately communicated.
+
+---
+
+4. SECURITY DEPOSIT
+
+4.1 The Licensee has paid to the Licensor a refundable security deposit of Rs. 75,000/- (Rupees Seventy-Five Thousand only) on the date of execution of this Agreement.
+
+4.2 The security deposit shall be refunded to the Licensee within 30 (thirty) days of the Licensee vacating the Premises, after deducting any outstanding dues, unpaid licence fee, or damage caused by the Licensee beyond normal wear and tear.
+
+---
+
+5. UTILITIES
+
+5.1 The Licensee shall bear all charges for electricity, water, gas and internet used at the Premises.
+
+5.2 The Licensor shall bear the society maintenance charges.
+
+---
+
+6. USE OF PREMISES
+
+6.1 The Premises shall be used for residential purposes only.
+
+6.2 The Licensee shall not use the Premises for any commercial, illegal or immoral purpose.
+
+6.3 The Licensee shall not sublet, assign or part with possession of the Premises or any part thereof to any third party without the prior written consent of the Licensor.
+
+---
+
+7. REPAIRS AND MAINTENANCE
+
+7.1 The Licensee shall keep the Premises clean and in good condition.
+
+7.2 Minor repairs up to Rs. 1,000/- per instance shall be the responsibility of the Licensee.
+
+7.3 Major structural repairs shall be the responsibility of the Licensor.
+
+---
+
+8. ACCESS AND INSPECTION
+
+8.1 The Licensor or their authorised representative shall have the right to inspect the Premises after giving 48 (forty-eight) hours prior written notice to the Licensee.
+
+---
+
+9. TERMINATION AND NOTICE
+
+9.1 Either party may terminate this Agreement by giving 60 (sixty) days' written notice to the other party.
+
+9.2 In the event that the Licensee fails to vacate the Premises on the date of termination, the Licensor shall be entitled to charge double the monthly licence fee as holding charges.
+
+---
+
+10. LOCK-IN PERIOD
+
+10.1 There is a lock-in period of 6 (six) months from the commencement of this Agreement.
+
+10.2 If the Licensee terminates the Agreement before the expiry of the lock-in period, the Licensee shall forfeit the security deposit.
+
+---
+
+11. GOVERNING LAW AND DISPUTE RESOLUTION
+
+11.1 This Agreement shall be governed by the laws of Maharashtra, India.
+
+11.2 Any dispute arising out of or in connection with this Agreement shall be referred to arbitration in accordance with the Arbitration and Conciliation Act, 1996.
+
+11.3 The venue of arbitration shall be Mumbai, Maharashtra.
+
+---
+
+12. GENERAL
+
+12.1 This Agreement constitutes the entire agreement between the parties and supersedes all prior negotiations, representations and agreements.
+
+12.2 Any amendment to this Agreement shall be in writing and signed by both parties.
+
+---
+
+SIGNATURES
+
+Licensor: Ramesh Kumar Sharma
+Date: 1st January 2025
+
+Licensee: Priya Agarwal
+Date: 1st January 2025
+
+---
+
+END OF SYNTHETIC FIXTURE
+Provenance: Synthetic, own work. CC0. Never based on any real agreement.
